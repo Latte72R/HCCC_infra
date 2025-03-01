@@ -1,0 +1,51 @@
+services:
+  web_server:
+    build:
+      context: ./web_server
+      dockerfile: Dockerfile.local
+    image: ${COMPOSE_PROJECT_NAME}-web_server-local
+    environment:
+      RUST_LOG: ${RUST_LOG:-web_server=trace}
+    volumes:
+      - ./web_server/Cargo.toml:/app/Cargo.toml
+      - ./web_server/Cargo.lock:/app/Cargo.lock
+      - ./web_server/src:/app/src
+      - web_server_cargo_registry:/usr/local/cargo/registry
+      - web_server_target:/app/target
+    command: cargo watch -x run
+    restart: no
+
+  judge_server:
+    build:
+      context: ./judge_server
+      dockerfile: Dockerfile.local
+    image: ${COMPOSE_PROJECT_NAME}-judge_server-local
+    volumes:
+      - ./judge_server/Cargo.toml:/app/Cargo.toml
+      - ./judge_server/Cargo.lock:/app/Cargo.lock
+      - ./judge_server/src:/app/src
+      - judge_server_cargo_registry:/usr/local/cargo/registry
+      - judge_server_target:/app/target
+    command: cargo watch -x run
+    restart: no
+
+  db:
+    ports:
+      - ${POSTGRES_PORT:-5433}:5432
+    restart: no
+
+  test_runner_x8664:
+    build:
+      context: ./test_runner
+      dockerfile: Dockerfile
+
+  test_runner_riscv:
+    build:
+      context: ./test_runner
+      dockerfile: riscv.Dockerfile
+
+volumes:
+  web_server_cargo_registry:
+  web_server_target:
+  judge_server_cargo_registry:
+  judge_server_target:

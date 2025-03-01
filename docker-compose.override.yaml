@@ -1,0 +1,8 @@
+services:
+  frontend:
+    image: hccc-frontend:latest
+    ports:
+      - ${FRONTEND_PORT:-3000}:3000
+    depends_on:
+      - web_server
+    restart: always
