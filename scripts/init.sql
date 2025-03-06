@@ -448,7 +448,7 @@ int main(void) {
     char str[20];
     int count = 0;
     scanf("%s", str);
-    for (int i = 0; str[i] != '\0'; i++) {
+    for (int i = 0; str[i] != \'\0\'; i++) {
         count++;
     }
     printf("入力された文字数は %d です\n", count);
