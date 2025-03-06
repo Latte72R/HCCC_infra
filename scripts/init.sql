@@ -1,4 +1,3 @@
--- ENUM型の定義
 CREATE TYPE JudgeResult AS ENUM (
     'AC',
     'WA',
@@ -22,22 +21,22 @@ CREATE TYPE TestTarget AS ENUM (
     'NoTestCase'
 );
 
--- ユーザ情報テーブル
-CREATE TABLE accounts (
+CREATE TABLE accounts -- ユーザ
+(
     id serial primary key,
     name text unique not null,
     password text not null
 );
 
--- セッションテーブル
-CREATE TABLE sessions (
+CREATE TABLE sessions
+(
     session_key text primary key,
     user_id integer REFERENCES accounts(id) ON UPDATE NO ACTION ON DELETE CASCADE,
     created_at timestamptz not null
 );
 
--- 問題テーブル（システムで参照するための列も含む）
-CREATE TABLE problems (
+CREATE TABLE problems -- 問題
+(
     id serial primary key,
     title text not null,
     statement text not null,
@@ -46,21 +45,21 @@ CREATE TABLE problems (
     output_desc text,
     arch Arch,
     test_target TestTarget,
-    is_wrong_code boolean,
+    is_wrong_code bool,
     error_line_number integer,
     score integer not null
 );
 
--- テストケーステーブル
-CREATE TABLE testcases (
+CREATE TABLE testcases -- テストケース
+(
     id serial primary key,
     problem_id integer REFERENCES problems(id) ON UPDATE NO ACTION ON DELETE CASCADE,
     input text,
     expect text
 );
 
--- 提出情報テーブル
-CREATE TABLE submits (
+CREATE TABLE submits -- submit
+(
     id serial primary key,
     user_id integer REFERENCES accounts(id) ON UPDATE NO ACTION ON DELETE CASCADE,
     problem_id integer REFERENCES problems(id) ON UPDATE NO ACTION ON DELETE CASCADE,
@@ -74,14 +73,13 @@ CREATE TABLE submits (
 
 -- 各問題のINSERT文
 
--- 問題0: Return 42
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     0,
-    'Return 42',
-    'exitcodeで42を返すプログラムをコードの通りにコンパイルしてください．チュートリアルを読めばできるはず．',
-    'int main(void) {
-    return 42;
+    'Return 72',
+    'exitcodeで72を返すプログラムをコードの通りにコンパイルしてください．チュートリアルを読めばできるはず．',
+    'int main() {
+    return 72;
 }',
     '無し',
     'exitcodeで出力',
@@ -92,13 +90,18 @@ VALUES (
     100
 );
 
--- 問題1: Addition of constants
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    0,
+    '',
+    '72'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     1,
     'Addition of constants',
     '定数の足し算をするプログラムをコードの通りにコンパイルしてください．練習も兼ねて答えを直書きしないで実際に足す命令を使いましょう．',
-    'int main(void) {
+    'int main() {
     return 5 + 2;
 }',
     '無し',
@@ -110,13 +113,18 @@ VALUES (
     100
 );
 
--- 問題2: Subtraction of constants
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    1,
+    '',
+    '7'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     2,
     'Subtraction of constants',
     '定数の引き算をするプログラムをコードの通りにコンパイルしてください．',
-    'int main(void) {
+    'int main() {
     return 255 - 55;
 }',
     '無し',
@@ -128,14 +136,19 @@ VALUES (
     100
 );
 
--- 問題3: Four arithmetic operations
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    2,
+    '',
+    '200'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     3,
     'Four arithmetic operations',
     '定数の四則演算をするプログラムをコードの通りにコンパイルしてください．掛け算や割り算はやや面倒ですが，これもいい練習です．',
-    'int main(void) {
-    return 2 * 3 - (8 / 5);
+    'int main() {
+    return 22 * 4 - 48 / 3;
 }',
     '無し',
     'exitcodeで出力',
@@ -146,13 +159,18 @@ VALUES (
     100
 );
 
--- 問題4: Local variable
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    3,
+    '',
+    '72'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     4,
     'Local variable',
-    'ローカル変数を含むプログラムをコードの通りにコンパイルしてください.',
-    'int main(void) {
+    'ローカル変数を含むプログラムをコードの通りにコンパイルしてください．最適化しないでください．',
+    'int main() {
     int a = 3;
     return a;
 }',
@@ -165,36 +183,72 @@ VALUES (
     100
 );
 
--- 問題5: return else（誤ったコード）
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    4,
+    '',
+    '3'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     5,
-    'return else',
-    '以下のプログラムをコードの通りにコンパイルしてください.',
-    'int main(void) {
-    return else;
+    'Undefined variable',
+    '未定義の変数を含むプログラムをコードの通りにコンパイルしてください．',
+    'int main() {
+    return num;
 }',
     '無し',
     'exitcodeで出力',
     'x8664',
-    'NoTestCase',
+    'ExitCode',
     true,
     2,
     100
 );
 
--- 問題6: Global variable
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    5,
+    '',
+    ''
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     6,
+    'Call function',
+    '関数を含むプログラムをコードの通りにコンパイルしてください.',
+    'int five() {
+    return 5;
+}
+int main() {
+    return five();
+}',
+    '無し',
+    'exitcodeで出力',
+    'x8664',
+    'ExitCode',
+    false,
+    null,
+    100
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    6,
+    '',
+    '5'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    7,
     'Global variable',
     'グローバル変数を含むプログラムをコードの通りにコンパイルしてください',
-    'int a = 0;
-void add_two(void) {
+    'int a = 9;
+void add_two() {
     a += 2;
 }
 
-int main(void) {
+int main() {
     add_two();
     return a;
 }',
@@ -207,17 +261,22 @@ int main(void) {
     100
 );
 
--- 問題7: Call function with args
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    7,
+    '',
+    '11'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    7,
+    8,
     'Call function with args',
     '引数ありの関数呼び出しを含むプログラムをコードの通りにをコンパイルしてください.',
-    'int add(int x, int y){
+    'int add(int x, int y) {
     return x + y;
 }
 
-int main(void) {
+int main() {
     return add(5, 4);
 }',
     '無し',
@@ -229,13 +288,18 @@ int main(void) {
     100
 );
 
--- 問題8: String
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    8,
+    '',
+    '9'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    8,
+    9,
     'String',
     '文字列を含むプログラムをコードの通りにコンパイルしてください。',
-    'int main(void) {
+    'int main() {
     char array[6] = "Hello";
     return array[2];
 }',
@@ -248,56 +312,21 @@ VALUES (
     100
 );
 
--- 問題9: return 23
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
+INSERT INTO testcases (problem_id, input, expect) VALUES(
     9,
-    'return 23',
-    '23を返すプログラムをコードの通りにコンパイルしてください。',
-    'int main{void}(
-    return 23;
-)',
-    '無し',
-    'exitcodeで出力',
-    'x8664',
-    'ExitCode',
-    false,
-    null,
-    100
+    '',
+    '108'
 );
 
--- 問題10: Sum
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     10,
-    'Sum',
-    '1~nの合計を計算するプログラムをコードの通りにコンパイルしてください．最適化？おぬしにはまだ早い．',
-    'int main(void) {
-    int n = 10, sum = 0;
-    for (int i=1, i<=n; i++) {
-        sum += i;
-    }
-    return sum;
-}',
-    '無し',
-    'exitcodeで出力',
-    'x8664',
-    'ExitCode',
-    false,
-    null,
-    100
-);
-
--- 問題11: Hello,world!
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    11,
     'Hello,world!',
     'ここまで長い道のりでしたね．ようやくHelloWorldです．標準出力に出力するコードをコンパイルしてください．標準出力に出す問題ではexit codeに0を返すのをお忘れなく．',
     '#include <stdio.h>
 
-int main(void) {
-    printf("Hello,world!");
+int main() {
+    printf("Hello, KCS1959!\n");
     return 0;
 }',
     '無し',
@@ -309,22 +338,64 @@ int main(void) {
     100
 );
 
--- 問題12: Echo
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    10,
+    '',
+    'Hello, KCS1959!\n'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    11,
+    'Sum',
+    '1~nの合計を計算するプログラムをコードの通りにコンパイルしてください．',
+    'int main() {
+    int n = 10, sum = 0;
+    for (int i=1; i<=n; i++) {
+        sum += i;
+    }
+    return sum;
+}',
+    '1 <= n <= 15',
+    'exitcodeで出力',
+    'x8664',
+    'ExitCode',
+    false,
+    null,
+    200
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    11,
+    '1',
+    '1'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    11,
+    '10',
+    '55'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    11,
+    '15',
+    '120'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     12,
-    'Echo',
-    '入力された文字をおうむ返しするコードをコンパイルしてください.',
+    'Hello,world!',
+    'ここまで長い道のりでしたね．ようやくHelloWorldです．標準出力に出力するコードをコンパイルしてください．標準出力に出す問題ではexit codeに0を返すのをお忘れなく．',
     '#include <stdio.h>
 
-int main(void) {
-    char str[30];
-    scanf("%s", &str);
-    printf("%s", str);
+int main() {
+    printf("Hello, KCS1959!");
     return 0;
 }',
-    '1 <= len(s) <= 29',
-    '標準出力、入力文字列と同じ',
+    '無し',
+    '標準出力',
     'x8664',
     'StdOut',
     false,
@@ -332,17 +403,93 @@ int main(void) {
     200
 );
 
--- 問題13: FizzBuzz
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    12,
+    '',
+    'Hello, KCS1959!'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     13,
+    'Echo',
+    '入力された文字をおうむ返しするコードをコンパイルしてください.',
+    '#include <stdio.h>
+
+int main() {
+    char str[30];
+    scanf("%s", str);
+    printf("%s", str);
+    return 0;
+}',
+    '1 <= len(s) <= 29',
+    '標準出力、入力文字列と同じ',
+    'x8664',
+    'NoTestCase',
+    true,
+    5,
+    200
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    13,
+    null,
+    null
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    14,
+    'Length of string',
+    '入力した文字数を数えるプログラムをコンパイルしてください',
+    '#include <stdio.h>
+
+int main(void) {
+    char str[20];
+    int count = 0;
+    scanf("%s", str);
+    for (int i = 0; str[i] != '\0'; i++) {
+        count++;
+    }
+    printf("入力された文字数は %d です\n", count);
+    return 0;
+}',
+    '1 <= len(s) <= 19',
+    '標準出力',
+    'x8664',
+    'StdOut',
+    false,
+    null,
+    200
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    14,
+    'hello',
+    '入力された文字数は 5 です\n'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    14,
+    'Hello, world!',
+    '入力された文字数は 13 です\n'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    14,
+    'KCS1959',
+    '入力された文字数は 7 です\n'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    15,
     'FizzBuzz',
     '入門にぴったりなFizzBuzzですが，アセンブリで書くのはやや大変．',
     '#include <stdio.h>
-int typedef INT;
 
-int main(void) {
-    INT d;
+int main() {
+    int d;
     scanf("%d", &d);
     for (int i=1;i<=d;i++) {
         if (i%15 == 0) {
@@ -363,61 +510,119 @@ int main(void) {
     'StdOut',
     false,
     null,
-    200
+    300
 );
 
--- 問題14: Increment, Decrement
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    14,
-    'Increment, Decrement',
-    'インクリメントとデクリメントを含むプログラムをコンパイルしてください.',
-    '#include <stdio.h>
-
-int main(void) {
-    int d, e, f;
-    scanf("%d %d %d", &d, &e, &f);
-    printf("%d", d++ + ++e - --f);
-    return 0;
-}',
-    '1 <= d, e, f <= 100',
-    '標準出力',
-    'x8664',
-    'StdOut',
-    false,
-    null,
-    200
-);
-
--- 問題15: Assign
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
+INSERT INTO testcases (problem_id, input, expect) VALUES(
     15,
-    'Assign',
-    '代入するプログラムをコンパイルしてください。',
+    '4',
+    '12Fizz4'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    15,
+    '15',
+    '12Fizz4BuzzFizz78FizzBuzz11Fizz1314FizzBuzz'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    15,
+    '20',
+    '12Fizz4BuzzFizz78FizzBuzz11Fizz1314FizzBuzz1617Fizz19Buzz'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    16,
+    'Recursive GCD',
+    '再帰を用いて2つの整数の最大公約数を求めるプログラムを、コードの通りにコンパイルしてください．',
     '#include <stdio.h>
 
-int main(void) {
-    int a, b, c;
-    scanf("%d", &c);
-    a = (b = 2) = c ;
-    printf("%d", a);
-    return 0;
+int gcd(int a, int b) {
+    if (b == 0)
+        return a;
+    else
+        return gcd(b, a % b);
+}
+
+int main() {
+    int a = 48, b = 18;
+    return gcd(a, b);
 }',
-    '1 <= c <= 100',
-    '標準出力',
+    '無し',
+    'exitcodeで出力',
     'x8664',
-    'StdOut',
+    'ExitCode',
     true,
     null,
     300
 );
 
--- 問題16: fibonacci
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    16,
+    '',
+    '6'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    16,
-    'fibonacci',
+    17,
+    'Multiplication',
+    '配列の要素を全て掛け合わせた結果を17で割った余りを出力するプログラムをコンパイルしてください．',
+    'int main() {
+  int arr[5] = {5, 2, 4, 3, 7};
+  int multi = 1;
+  int i;
+  for (i = 0; i < 5; i++) {
+    multi *= arr[i];
+  }
+  return multi % 17;
+}',
+    '無し',
+    '標準出力',
+    'x8664',
+    'StdOut',
+    false,
+    null,
+    300
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    17,
+    '',
+    '6'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    18,
+    'Increment, Decrement',
+    '最適化で全部消したりしないでね！',
+    'int main(void) {
+  int a = 3, b = 5, c = 7;
+  int *ptr = &b;
+  int result = a++ + *ptr * (--c) + ++a;
+  return result;
+}',
+    '無し',
+    'exitcodeで出力',
+    'x8664',
+    'ExitCode',
+    false,
+    null,
+    300
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    18,
+    '',
+    '20'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    19,
+    'Fibonacci',
     'フィボナッチ数列を計算するプログラムをコンパイルしてください。',
     '#include <stdio.h>
 
@@ -426,7 +631,7 @@ int fib(int n) {
     return fib(n-1) + fib(n-2);
 }
 
-int main(void) {
+int main() {
     int d;
     scanf("%d", &d);
     printf("%d", fib(d));
@@ -441,43 +646,32 @@ int main(void) {
     300
 );
 
--- 問題17: ternary operator
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    17,
-    'ternary operator',
-    '3項演算子を含むコードをコンパイルしてみましょう．',
-    '#include <stdio.h>
-
-struct S {
-    int m;
-};
-
-int main(void) {
-    struct S s1 = {1}, s2 = {2};
-    int d;
-    scanf("%d", &d);
-    printf("%d", (d == 1 ? s1 : s2).m);
-    return 0;
-}',
-    '1 <= d <= 5',
-    '標準出力',
-    'x8664',
-    'StdOut',
-    false,
-    null,
-    300
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    19,
+    '7',
+    '13'
 );
 
--- 問題18: d.e.f
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    19,
+    '10',
+    '89'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    19,
+    '20',
+    '10946'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    18,
-    'd.e.f',
-    '3つの変数を使ったプログラムをコンパイルしてみよう！',
+    20,
+    'Dereference operator',
+    '3つの変数を使ったプログラムをコンパイルしてみよう！最適化しないでください．',
     '#include <stdio.h>
 
-int main(void) {
+int main() {
     int *d, e, **f;
     e = 10;
     d = &e;
@@ -491,114 +685,155 @@ int main(void) {
     'StdOut',
     false,
     null,
-    400
+    300
 );
 
--- 問題19: Switch ?
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    20,
+    '',
+    '1000'
+);
+
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    19,
-    'Switch ?',
-    'switch文(?)をコンパイルしてみよう!最適化せずにこのコードのままコンパイルしてね！',
+    21,
+    'Switch',
+    'switch文をコンパイルしてみよう!',
     '#include <stdio.h>
-#include <stdlib.h>
 
-int main(void){
-    char *psz1 = calloc(100, sizeof(char));
-    char *psz2 = "abcdefghijklmnopqrstuvwxyz";
-    char *to   = psz1;
-    char *from = psz2;
-    int  count = 26;
-
-    switch (count % 8) {
-        case 0:  do {  *to++ = *from++;
-        case 7:        *to++ = *from++;
-        case 6:        *to++ = *from++;
-        case 5:        *to++ = *from++;
-        case 4:        *to++ = *from++;
-        case 3:        *to++ = *from++;
-        case 2:        *to++ = *from++;
-        case 1:        *to++ = *from++;
-        } while ((count -= 8) > 0);
-    }
-
-    printf("%s", psz1);
-    return 0;
+int main() {
+  int num = 2;
+  switch (num) {
+  case 1:
+    int value = 10;
+    printf("Case 1: %d\n", value);
+    break;
+  case 2:
+    int value = 20;
+    printf("Case 2: %d\n", value);
+    break;
+  default:
+    break;
+  }
+  return 0;
 }',
     '無し',
-    'StdOut',
+    '標準出力',
+    'x8664',
+    'NoTestCase',
+    true,
+    11,
+    300
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    21,
+    null,
+    null
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    22,
+    'Ternary operator',
+    '3項演算子を含むコードをコンパイルしてみましょう．  最適化しないでください．',
+    '#include <stdio.h>
+
+struct S {
+  int m;
+  int n;
+};
+
+int main(void) {
+  struct S s = {5, 3};
+  int d;
+  scanf("%d", &d);
+  int result = d == 1 ? (s.m * 6) : d == 2 ? (s.n * 2) : (s.m + s.n);
+  printf("%d\n", result);
+  return 0;
+}',
+    '1 <= d <= 5',
+    '標準出力',
     'x8664',
     'StdOut',
     false,
     null,
-    500
+    400
 );
 
--- 問題20: Four arithmetic operations2
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    20,
-    'Four arithmetic operations2',
-    '最適化で全部消したりしないでね！',
-    '#include<stdio.h>
-int main(void){
-    int a=2;int*p=&a;
-    int twelve=10+*p;
-    int eight =10-*p;
-    int twenty=10**p;
-    int five  =10/*p;
-}',
-    '無し',
-    'exitcodeで出力',
-    'x8664',
-    'ExitCode',
-    true,
-    null,
-    500
-);
-
--- 問題21: 50 ** 2
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    21,
-    '50 ** 2',
-    '最近はいろんな言語でべき乗ができて便利ですよね．',
-    '#include <stdio.h>
-int main(void){
-    if( 50 ** "2" == 2500 ) {
-            printf("C language has a power operator!?");
-    } else {
-            printf("C language does not have a power operator...");
-    }
-    return 0;
-}',
-    '無し',
-    '標準出力',
-    'x8664',
-    'StdOut',
-    true,
-    null,
-    500
-);
-
--- 問題22: Thank you seccamp
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
+INSERT INTO testcases (problem_id, input, expect) VALUES(
     22,
-    'Thank you seccamp',
-    'ありがとう，セキュリティ・キャンプ．',
+    '1',
+    '30'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    22,
+    '2',
+    '6'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    22,
+    '4',
+    '8'
+);
+
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+VALUES (
+    23,
+    'Prime number',
+    'N番目の素数を求めるプログラムをコンパイルしてください．',
     '#include <stdio.h>
-int main(void) {
-    printf("Security camp is a very exciting event!\n");
-    printf("For more info, please visit:\n");
-    https://www.ipa.go.jp/jinzai/security-camp/
-    return 0;
+
+int main() {
+  int N;
+  scanf("%d", &N);
+  int prm[30];
+  prm[0] = 2;
+  int i = 3;
+  int n = 1;
+  int j;
+  while (1) {
+    for (j = 0; j < n; j++) {
+      if (i % prm[j] == 0)
+        break;
+      if (j == n - 1) {
+        prm[n] = i;
+        n++;
+        break;
+      }
+    }
+    if (n == N)
+      break;
+    i++;
+  }
+  printf("%d\n", prm[N - 1]);
+  return 0;
 }',
-    '無し',
+    '1 <= N <= 30',
     '標準出力',
     'x8664',
     'StdOut',
-    true,
+    false,
     null,
-    1000
+    400
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    23,
+    '3',
+    '5'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    23,
+    '16',
+    '53'
+);
+
+INSERT INTO testcases (problem_id, input, expect) VALUES(
+    23,
+    '24',
+    '89'
 );
