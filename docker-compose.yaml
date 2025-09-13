@@ -6,9 +6,9 @@ services:
       - ${BACKEND_PORT:-55301}:55301
     environment:
       RUST_LOG: ${RUST_LOG:-web_server=info}
-      DATABASE_URL: postgres://${POSTGRES_USER:-non_manaka}:${POSTGRES_PASSWORD:-NonSugar}@db:5432/${POSTGRES_DB:-hccc_judge}
-      CONTEST_BEGIN: ${CONTEST_BEGIN:-2025-03-01T00:00:00+09:00}
-      CONTEST_END: ${CONTEST_END:-2025-03-17T21:00:00+09:00}
+      DATABASE_URL: postgres://${POSTGRES_USER:-kcs1959}:${POSTGRES_PASSWORD:-WeL0veKCS}@db:5432/${POSTGRES_DB:-hccc_judge}
+      CONTEST_BEGIN: ${CONTEST_BEGIN:-2025-09-01T00:00:00+09:00}
+      CONTEST_END: ${CONTEST_END:-2025-09-20T00:00:00+09:00}
     depends_on:
       db:
         condition: service_healthy
@@ -20,7 +20,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-non_manaka}:${POSTGRES_PASSWORD:-NonSugar}@db:5432/${POSTGRES_DB:-hccc_judge}
+      DATABASE_URL: postgres://${POSTGRES_USER:-kcs1959}:${POSTGRES_PASSWORD:-WeL0veKCS}@db:5432/${POSTGRES_DB:-hccc_judge}
     depends_on:
       db:
         condition: service_healthy
@@ -30,15 +30,15 @@ services:
     image: postgres:14-alpine
     container_name: postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-non_manaka}
+      POSTGRES_USER: ${POSTGRES_USER:-kcs1959}
       POSTGRES_DB: ${POSTGRES_DB:-hccc_judge}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-NonSugar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-WeL0veKCS}
     volumes:
       - db_store:/var/lib/postgresql/data
       - ./scripts:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
-      test: psql -U ${POSTGRES_USER:-non_manaka} -d ${POSTGRES_DB:-hccc_judge} -c 'SELECT 1' || exit 1
+      test: psql -U ${POSTGRES_USER:-kcs1959} -d ${POSTGRES_DB:-hccc_judge} -c 'SELECT 1' || exit 1
       interval: 2s
       timeout: 5s
       retries: 5
