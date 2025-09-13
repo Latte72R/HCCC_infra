@@ -12,8 +12,10 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --config net.git-fetch-with-cli=true --release --bin test_runner --features riscv
 
-FROM ghcr.io/alignof/riscv_toolchain_docker:master
-ENV PATH $PATH:/opt/riscv/bin:$HOME/.cargo/bin
+FROM gcc:12.2.0
+RUN apt-get update && \
+    apt-get install -y gcc-riscv64-linux-gnu qemu-user && \
+    rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/test_runner /work/
 ENTRYPOINT ["/work/test_runner"]
 

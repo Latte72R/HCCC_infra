@@ -10,7 +10,7 @@ pub mod constants {
 
 #[cfg(feature = "riscv")]
 pub mod constants {
-    pub const ASSEMBLE_CMD: &str = "riscv64-unknown-elf-as submit.s -o tmp.o";
-    pub const LINK_CMD: &str = "riscv64-unknown-elf-gcc -v -static -no-pie tmp.o -o test_target";
-    pub const EXEC_CMD: &str = "spike --isa=rv64imac pk ./test_target";
+    pub const ASSEMBLE_CMD: &str = "riscv64-linux-gnu-as submit.s -o tmp.o";
+    pub const LINK_CMD: &str = "riscv64-linux-gnu-gcc -v -static -no-pie tmp.o -o test_target";
+    pub const EXEC_CMD: &str = "qemu-riscv64 ./test_target";
 }
