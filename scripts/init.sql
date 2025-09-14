@@ -356,7 +356,7 @@ VALUES (
     }
     return sum;
 }',
-    '1 <= n <= 15',
+    '無し',
     'exitcodeで出力',
     'x8664',
     'ExitCode',
@@ -367,46 +367,8 @@ VALUES (
 
 INSERT INTO testcases (problem_id, input, expect) VALUES(
     11,
-    '1',
-    '1'
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    11,
-    '10',
-    '55'
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    11,
-    '15',
-    '120'
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    12,
-    'Hello,world!',
-    'ここまで長い道のりでしたね．ようやくHelloWorldです．標準出力に出力するコードをコンパイルしてください．標準出力に出す問題ではexit codeに0を返すのをお忘れなく．',
-    '#include <stdio.h>
-
-int main() {
-    printf("Hello, KCS1959!");
-    return 0;
-}',
-    '無し',
-    '標準出力',
-    'x8664',
-    'StdOut',
-    false,
-    null,
-    200
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    12,
     '',
-    'Hello, KCS1959!'
+    '55'
 );
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)

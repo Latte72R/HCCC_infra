@@ -1,0 +1,29 @@
+docker compose exec db pg_dump -U "kcs1959" -d "hccc_judge" > backup_$(date +%F).sql
+
+
+docker compose exec -T db psql -U "kcs1959" -d "hccc_judge" <<'SQL'
+UPDATE problems
+  SET statement = '1 ~ 10 の合計を計算するプログラムをコードの通りにコンパイルしてください．', input_desc = '無し'
+  WHERE id = 11;
+UPDATE problems
+  SET statement = '問題の重複のためこの問題は無効とします．', input_desc = '無し', score = 0, code=''
+  WHERE id = 12;
+DELETE FROM testcases
+  WHERE problem_id = 11 AND id IN (12, 14)
+SQL
+
+docker compose exec -T db psql -U "kcs1959" -d "hccc_judge" <<'SQL'
+UPDATE testcases
+  SET input=''
+  WHERE problem_id = 11 AND id = 13
+SQL
+
+docker compose exec db psql -U "kcs1959" -d "hccc_judge" -c \
+  "UPDATE submits SET result = 'Pending' WHERE problem_id = 11;"
+
+docker compose exec -T db psql -U "kcs1959" -d "hccc_judge" <<'SQL'
+BEGIN;
+CLUSTER VERBOSE problems USING problems_pkey;
+ANALYZE problems;
+COMMIT;
+SQL
