@@ -341,7 +341,7 @@ int main() {
 INSERT INTO testcases (problem_id, input, expect) VALUES(
     10,
     '',
-    'Hello, KCS1959!\n'
+    E'Hello, KCS1959!\n'
 );
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)

@@ -14,16 +14,8 @@ SQL
 
 docker compose exec -T db psql -U "kcs1959" -d "hccc_judge" <<'SQL'
 UPDATE testcases
-  SET input=''
-  WHERE problem_id = 11 AND id = 13
-SQL
-
-docker compose exec db psql -U "kcs1959" -d "hccc_judge" -c \
-  "UPDATE submits SET result = 'Pending' WHERE problem_id = 11;"
-
-docker compose exec -T db psql -U "kcs1959" -d "hccc_judge" <<'SQL'
-BEGIN;
-CLUSTER VERBOSE problems USING problems_pkey;
-ANALYZE problems;
-COMMIT;
+  SET expect=E'Hello, KCS1959!\n'
+  WHERE problem_id = 10 AND id = 11;
+CLUSTER VERBOSE testcases USING testcases_pkey;
+UPDATE submits SET result = 'Pending' WHERE problem_id = 10;
 SQL
