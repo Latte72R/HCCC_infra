@@ -13,6 +13,7 @@ use crate::{database::RepositoryProvider, is_admin_user, request::UserContext};
 struct RecentSubmission {
     id: i32,
     user_name: String,
+    problem_id: i32,
     problem_title: String,
     result: String,
     error_message: String,
@@ -271,7 +272,7 @@ pub async fn overview(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let rows = sqlx::query(
-        "SELECT s.id, a.name AS user_name, p.title AS problem_title, \
+        "SELECT s.id, a.name AS user_name, p.id AS problem_id, p.title AS problem_title, \
          s.result::text AS result, s.error_message, s.time AS submitted_at \
          FROM submits s JOIN accounts a ON a.id = s.user_id \
          JOIN problems p ON p.id = s.problem_id ORDER BY s.time DESC LIMIT 20",
@@ -291,6 +292,7 @@ pub async fn overview(
             .map(|row| RecentSubmission {
                 id: row.get("id"),
                 user_name: row.get("user_name"),
+                problem_id: row.get("problem_id"),
                 problem_title: row.get("problem_title"),
                 result: row.get("result"),
                 error_message: row.get("error_message"),
