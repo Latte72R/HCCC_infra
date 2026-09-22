@@ -1,0 +1,15 @@
+[package]
+name = "k8s_job_adapter"
+version = "0.1.0"
+edition = "2021"
+description = "Run HCCC test_runner as a Kubernetes Job (HCCC_RUNNER_EXECUTABLE adapter)"
+
+[[bin]]
+name = "hccc-k8s-job-runner"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+kube = { version = "2", features = ["client", "config"] }
+k8s-openapi = { version = "0.26", features = ["latest"] }
+serde_json = "1.0"

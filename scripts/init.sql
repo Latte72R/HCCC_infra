@@ -68,8 +68,14 @@ CREATE TABLE submits -- submit
     error_message text not null,
     is_ce boolean not null,
     error_line_number integer,
-    result JudgeResult not null
+    result JudgeResult not null,
+    -- Multi-replica judge claim lease. NULL means unclaimed.
+    claimed_at timestamptz,
+    claimed_by text
 );
+
+CREATE INDEX IF NOT EXISTS idx_submits_pending_claim
+    ON submits (result, claimed_at, time) WHERE result = 'Pending';
 
 CREATE TABLE admin_judge_audit (
     id bigserial primary key,

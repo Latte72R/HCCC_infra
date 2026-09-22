@@ -32,26 +32,34 @@ services:
     restart: always
     
   judge_server:
-    build: judge_server
+    build:
+      context: .
+      dockerfile: judge_server/Dockerfile
     container_name: judge_server
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-kcs1959}:${POSTGRES_PASSWORD:-WeL0veKCS}@db:5432/${POSTGRES_DB:-hccc_judge}
+      # Multi-replica judging: claim batches of Pending submits with a lease.
+      JUDGE_CLAIM_LIMIT: ${JUDGE_CLAIM_LIMIT:-4}
+      JUDGE_CLAIM_LEASE_SECS: ${JUDGE_CLAIM_LEASE_SECS:-300}
+      JUDGE_POLL_MILLIS: ${JUDGE_POLL_MILLIS:-5000}
     depends_on:
       db:
         condition: service_healthy
     restart: always
 
   db:
-    image: postgres:14-alpine
+    image: ${POSTGRES_IMAGE:-postgres:18-alpine}
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-kcs1959}
       POSTGRES_DB: ${POSTGRES_DB:-hccc_judge}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-WeL0veKCS}
     volumes:
-      - db_store:/var/lib/postgresql/data
+      # NOTE: postgres:18 stores data in versioned subdirs, so mount the
+      # parent dir (mounting .../data directly is refused by the image).
+      - db_store:/var/lib/postgresql
       - ./scripts:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:

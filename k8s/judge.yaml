@@ -1,0 +1,95 @@
+# judge_server runs each submission via hccc-k8s-job-runner (HCCC_RUNNER_EXECUTABLE).
+# Pending submits are claimed with SELECT ... FOR UPDATE SKIP LOCKED plus a
+# lease (claimed_at/claimed_by), so any replica count >= 1 is safe.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hccc-judge
+  namespace: hccc
+  labels:
+    app.kubernetes.io/name: hccc-judge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hccc-judge-jobs
+  namespace: hccc
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hccc-judge-jobs
+  namespace: hccc
+subjects:
+  - kind: ServiceAccount
+    name: hccc-judge
+    namespace: hccc
+roleRef:
+  kind: Role
+  name: hccc-judge-jobs
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge-server
+  namespace: hccc
+  labels:
+    app.kubernetes.io/name: hccc-judge-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hccc-judge-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hccc-judge-server
+    spec:
+      serviceAccountName: hccc-judge
+      containers:
+        - name: judge-server
+          image: ghcr.io/latte72r/hccc-judge:latest
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: hccc-postgres
+                  key: database-url
+            - name: RUST_LOG
+              value: judge_server=info
+            - name: HCCC_RUNNER_EXECUTABLE
+              value: /app/k8s-job-runner
+            - name: HCCC_JOB_NAMESPACE
+              value: hccc
+            - name: HCCC_RUNNER_IMAGE_X8664
+              valueFrom:
+                configMapKeyRef:
+                  name: hccc-config
+                  key: runner-image-x8664
+            - name: HCCC_RUNNER_IMAGE_RISCV
+              valueFrom:
+                configMapKeyRef:
+                  name: hccc-config
+                  key: runner-image-riscv
+            # Claim tuning for N replicas (see judge_server/src/main.rs).
+            - name: JUDGE_CLAIM_LIMIT
+              value: "4"
+            - name: JUDGE_CLAIM_LEASE_SECS
+              value: "300"
+            - name: JUDGE_POLL_MILLIS
+              value: "5000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

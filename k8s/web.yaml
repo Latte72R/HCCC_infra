@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-server
+  namespace: hccc
+  labels:
+    app.kubernetes.io/name: hccc-web
+spec:
+  selector:
+    app.kubernetes.io/name: hccc-web
+  ports:
+    - name: http
+      port: 55301
+      targetPort: 55301
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+  namespace: hccc
+  labels:
+    app.kubernetes.io/name: hccc-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hccc-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hccc-web
+    spec:
+      containers:
+        - name: web-server
+          image: ghcr.io/latte72r/hccc-web:latest
+          ports:
+            - containerPort: 55301
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: hccc-postgres
+                  key: database-url
+            - name: ADMIN_USER_IDS
+              valueFrom:
+                configMapKeyRef:
+                  name: hccc-config
+                  key: admin-user-ids
+            - name: CONTEST_BEGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: hccc-config
+                  key: contest-begin
+            - name: CONTEST_END
+              valueFrom:
+                configMapKeyRef:
+                  name: hccc-config
+                  key: contest-end
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 55301
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 55301
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

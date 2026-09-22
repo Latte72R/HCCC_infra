@@ -24,7 +24,23 @@ impl RepositoryProvider {
             PostgresConnectionManager::new_from_stringlike(database_url(), NoTls).unwrap();
         let pool = Pool::builder().build(manager).await.unwrap();
 
-        RepositoryProvider(pool)
+        let provider = RepositoryProvider(pool);
+        provider.ensure_schema().await;
+        provider
+    }
+
+    /// Bring pre-claim-era databases up to date (idempotent).
+    /// Mirrors scripts/migrations/002_judge_claim.sql.
+    async fn ensure_schema(&self) {
+        let conn = self.0.get().await.unwrap();
+        conn.batch_execute(
+            "ALTER TABLE submits ADD COLUMN IF NOT EXISTS claimed_at timestamptz; \
+             ALTER TABLE submits ADD COLUMN IF NOT EXISTS claimed_by text; \
+             CREATE INDEX IF NOT EXISTS idx_submits_pending_claim \
+             ON submits (result, claimed_at, time) WHERE result = 'Pending';",
+        )
+        .await
+        .unwrap();
     }
 
     #[must_use]

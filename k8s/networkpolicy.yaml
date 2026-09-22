@@ -1,0 +1,14 @@
+# Mirrors the Compose judge sandbox (--network=none): Job pods get no
+# ingress or egress at all. test_runner only needs local exec (gcc/qemu).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-judge-jobs
+  namespace: hccc
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hccc-judge
+  policyTypes:
+    - Ingress
+    - Egress

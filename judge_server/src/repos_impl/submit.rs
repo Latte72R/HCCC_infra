@@ -11,12 +11,27 @@ pub struct SubmitImpl<'a> {
 
 #[axum::async_trait]
 impl<'a> Submits for SubmitImpl<'a> {
-    /// Get pending submits from database.
-    async fn get_pending_submits(&self) -> Vec<Submit> {
+    /// Claim Pending submits with SELECT ... FOR UPDATE SKIP LOCKED so that
+    /// concurrent judge replicas never process the same row twice.
+    async fn claim_pending_submits(
+        &self,
+        limit: i64,
+        claimed_by: &str,
+        lease_secs: i32,
+    ) -> Vec<Submit> {
         let conn = self.pool.get().await.unwrap();
         conn.query(
-            "SELECT * FROM submits WHERE result = 'Pending' ORDER BY time DESC",
-            &[],
+            "UPDATE submits SET claimed_at = now(), claimed_by = $1 \
+             WHERE id IN ( \
+               SELECT id FROM submits \
+               WHERE result = 'Pending' \
+                 AND (claimed_at IS NULL OR claimed_at < now() - ($3::int * interval '1 second')) \
+               ORDER BY time ASC \
+               LIMIT $2 \
+               FOR UPDATE SKIP LOCKED \
+             ) \
+             RETURNING *",
+            &[&claimed_by, &limit, &lease_secs],
         )
         .await
         .unwrap()
@@ -25,15 +40,26 @@ impl<'a> Submits for SubmitImpl<'a> {
         .collect()
     }
 
-    /// Store Judged result.
-    async fn store_result(&self, result: JudgeResult, error_message: String, submit_id: i32) {
+    /// Store Judged result and release the claim.
+    /// Only touches rows that are still Pending, so an admin correction that
+    /// landed while judging is never overwritten.
+    async fn store_result(
+        &self,
+        result: JudgeResult,
+        error_message: String,
+        submit_id: i32,
+    ) -> bool {
         let conn = self.pool.get().await.unwrap();
-        conn.query_opt(
-            "UPDATE submits set result = $1, error_message = $2 WHERE id = $3 AND result = 'Pending'",
-            &[&result, &error_message, &submit_id],
-        )
-        .await
-        .unwrap();
+        let updated = conn
+            .execute(
+                "UPDATE submits SET result = $1, error_message = $2, \
+                 claimed_at = NULL, claimed_by = NULL \
+                 WHERE id = $3 AND result = 'Pending'",
+                &[&result, &error_message, &submit_id],
+            )
+            .await
+            .unwrap();
+        updated == 1
     }
 }
 

@@ -28,6 +28,21 @@ docker compose up --build -d
 管理画面は `/admin` です。判定修正は変更前後の結果と管理者 ID を
 `admin_judge_audit` に記録します。既存 DB でも初回修正時にテーブルを作成します。
 
+## データベース
+
+PostgreSQL 18 (`postgres:18-alpine`) を使います。14 系のボリュームをそのまま
+流用はできないため、既存データがある場合はダンプ＆リストアで移行します。
+`POSTGRES_IMAGE` でイメージを上書きできます。
+
+```bash
+cp .env.example .env   # 資格情報を合わせる
+./scripts/migrate-pg14-to-pg18.sh
+```
+
+`scripts/init.sql` は新規 DB の初期化専用です。`claimed_at` / `claimed_by`
+（複数 judge 用のクレーム列）は `scripts/migrations/002_judge_claim.sql`
+でも追加でき、judge 起動時にも自動適用されます。
+
 ## 使用技術
 
 - Rust
@@ -58,6 +73,12 @@ infrastructure for [HCCC](https://github.com/Alignof/Human_C_Compiler_Contest)
 
 - `frontend` は standalone Next.js イメージで、実行時の `HCCC_API_INTERNAL_URL` に `web_server` の ClusterIP Service を指定します。ブラウザの API 呼び出しは同一オリジンの `/api/backend` を通るため、公開 API の URL をビルドに焼き込む必要はありません。
 - `web_server` の `/healthz` を liveness、DB 接続を確認する `/readyz` を readiness probe に使えます。`DATABASE_URL`、`ADMIN_USER_IDS`、大会期間は Secret/ConfigMap から注入してください。
-- PostgreSQL は永続ボリューム付き StatefulSet またはマネージド DB に置き、`scripts/init.sql` は新規 DB の初期化時だけ実行します。
-- `judge_server` は現時点で既定の実行方式として Docker CLI とホストの Docker ソケットを使います。Kubernetes ではこのままデプロイせず、`HCCC_RUNNER_EXECUTABLE` に Job 実行アダプタを指定してください。アダプタは `image`, `base64(asm)`, `exitcode` / `stdout` / `none` の test target, `base64(JSON testcases)` を順に引数として受け取り、test_runner と同じ終了コードと stderr を返す必要があります。Job ごとに CPU/メモリ制限と実行期限を設定し、完了後に削除してください。
-- 判定処理は複数レプリカで同じ Pending 提出を取得する設計です。Job 化の前に DB の行ロックによる取得と再試行処理を入れ、judge_server はそれまでは 1 レプリカで運用してください。
+- PostgreSQL は永続ボリューム付き StatefulSet またはマネージド DB に置き、`scripts/init.sql` は新規 DB の初期化時だけ実行します。14 系からの移行は `scripts/migrate-pg14-to-pg18.sh` を使います。
+- `judge_server` は `HCCC_RUNNER_EXECUTABLE=/app/k8s-job-runner` で各提出を
+  Kubernetes Job として実行します（イメージ内に同梱）。アダプタは `image`,
+  `base64(asm)`, `exitcode` / `stdout` / `none`, `base64(JSON testcases)` を
+  受け取り、test_runner と同じ終了コード・stderr を返します。runner イメージは
+  `HCCC_RUNNER_IMAGE_X8664` / `HCCC_RUNNER_IMAGE_RISCV` で上書きできます。
+- Pending 提出の取得は `SELECT ... FOR UPDATE SKIP LOCKED`＋リース
+  （`claimed_at` / `claimed_by`、`JUDGE_CLAIM_LEASE_SECS` 既定 300 秒）で行うため、
+  judge は複数レプリカで運用できます。詳細とマニフェストは `k8s/README.md` を参照してください。

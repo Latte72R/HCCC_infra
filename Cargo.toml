@@ -3,5 +3,5 @@ resolver = "2"
 members = [
   "test_runner",
   "web_server",
-  "judge_server",
+  "judge_server", "k8s_job_adapter",
 ]
