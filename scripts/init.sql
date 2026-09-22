@@ -199,7 +199,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     4,
     'Local variable',
-    'ローカル変数を含むプログラムをコードの通りにコンパイルしてください．最適化しないでください．',
+    'ローカル変数を含むプログラムをコードの通りにコンパイルしてください．',
     'int main() {
     int a = 3;
     return a;
@@ -495,7 +495,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     18,
     'Increment, Decrement',
-    '最適化で全部消したりしないでね！',
+    'ポインタとインクリメントを含むプログラムをコードの通りにコンパイルしてください．',
     'int main(void) {
   int a = 3, b = 5, c = 7;
   int *ptr = &b;
@@ -564,7 +564,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     20,
     'Dereference operator',
-    '3つの変数を使ったプログラムをコンパイルしてみよう！最適化しないでください．',
+    '3つの変数を使ったプログラムをコンパイルしてみよう！',
     '#include <stdio.h>
 
 int main() {
@@ -593,7 +593,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     22,
     'Ternary operator',
-    '3項演算子を含むコードをコンパイルしてみましょう．  最適化しないでください．',
+    '3項演算子を含むコードをコンパイルしてみましょう．',
     '#include <stdio.h>
 
 struct S {
