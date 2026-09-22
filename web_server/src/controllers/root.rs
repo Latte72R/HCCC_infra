@@ -65,6 +65,7 @@ pub async fn app() -> Router {
         .route("/api/logout", routing::post(accounts::logout))
         .route("/api/register", routing::post(accounts::register))
         .route("/api/ranking", routing::get(ranking))
+        .route("/api/contest/period", routing::get(contest_period))
         .nest("/api/users", users::user())
         .nest("/api/problems", problems::problem())
         .nest("/api/submissions", submissions::submissions())
@@ -94,4 +95,16 @@ async fn ranking(Extension(repository_provider): Extension<RepositoryProvider>) 
     tracing::debug!("/api/ranking");
     let user_repo = repository_provider.user();
     Json(services::get_ranking(&user_repo).await)
+}
+
+/// Public contest period so the frontend clock/banner follows the
+/// admin-editable schedule instead of build-time env vars.
+async fn contest_period(
+    Extension(repository_provider): Extension<RepositoryProvider>,
+) -> Json<serde_json::Value> {
+    tracing::debug!("/api/contest/period");
+    let (begin, end) = repository_provider.contest_period().await;
+    Json(
+        serde_json::json!({ "status": "ok", "begin": begin.to_rfc3339(), "end": end.to_rfc3339() }),
+    )
 }
