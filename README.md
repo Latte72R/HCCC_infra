@@ -12,13 +12,21 @@
 
 web_server, judge_server, test_runner, DB の構成です。
 
-HCCC_infra と HCCC_frontend を同じ親ディレクトリに置きます。更新済み RISC-V ツールチェーンを同じ親ディレクトリに clone してから、両アーキテクチャの runner をビルドして起動します。
+HCCC_infra と HCCC_frontend を同じ親ディレクトリに置き、次のコマンドで起動します。
+RISC-V ツールチェーンは公開イメージ（`ghcr.io/latte72r/riscv_toolchain_docker:master`）
+をそのまま使うため、ローカルでのビルドは不要です。
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile test_runner build test_runner_x8664 test_runner_riscv
+docker compose up --build -d
+```
+
+独自にツールチェーンをビルドして使う場合は `RISCV_TOOLCHAIN_IMAGE` で上書きできます。
 
 ```bash
 git clone https://github.com/Latte72R/riscv_toolchain_docker.git ../riscv_toolchain_docker
 docker build -t hccc-riscv-toolchain:local ../riscv_toolchain_docker
-docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile test_runner build test_runner_x8664 test_runner_riscv
-docker compose up --build -d
+RISCV_TOOLCHAIN_IMAGE=hccc-riscv-toolchain:local docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile test_runner build test_runner_riscv
 ```
 
 また、`.env.example`の環境変数をセットすることが出来ます。
@@ -61,7 +69,6 @@ docker compose -f docker-compose.yaml -f docker-compose.local.yaml up --build
 また、実際に提出物を実行するtest_runnerは、以下のコマンドでコンテナイメージ作成が行えます。
 
 ```bash
-docker build -t hccc-riscv-toolchain:local ../riscv_toolchain_docker
 docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile test_runner build test_runner_x8664 test_runner_riscv
 ```
 

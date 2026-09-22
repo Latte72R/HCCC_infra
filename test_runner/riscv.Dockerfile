@@ -1,4 +1,4 @@
-ARG RISCV_TOOLCHAIN_IMAGE=hccc-riscv-toolchain:local
+ARG RISCV_TOOLCHAIN_IMAGE=ghcr.io/latte72r/riscv_toolchain_docker:master
 
 FROM rust:1.98.1-bookworm AS builder
 WORKDIR /app
