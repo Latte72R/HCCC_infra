@@ -6,7 +6,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPool, Row};
 
-use crate::{is_admin_user, request::UserContext};
+use crate::{database::RepositoryProvider, is_admin_user, request::UserContext};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,6 +40,68 @@ pub struct JudgementCorrection {
 #[derive(Serialize)]
 pub struct CorrectionResponse {
     status: &'static str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestPeriod {
+    begin: String,
+    end: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestPeriodUpdate {
+    begin: String,
+    end: String,
+}
+
+fn parse_rfc3339(value: &str) -> Option<chrono::DateTime<chrono::FixedOffset>> {
+    chrono::DateTime::parse_from_rfc3339(value).ok()
+}
+
+/// Current contest period (admin only). Values are RFC3339 strings.
+pub async fn get_contest_period(
+    context: UserContext,
+    Extension(repository_provider): Extension<RepositoryProvider>,
+) -> Result<Json<ContestPeriod>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let (begin, end) = repository_provider.contest_period().await;
+    Ok(Json(ContestPeriod {
+        begin: begin.to_rfc3339(),
+        end: end.to_rfc3339(),
+    }))
+}
+
+/// Update the contest period (admin only). Both values must be valid RFC3339
+/// timestamps with begin strictly before end.
+pub async fn update_contest_period(
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+    Json(update): Json<ContestPeriodUpdate>,
+) -> Result<Json<CorrectionResponse>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let (Some(begin), Some(end)) = (parse_rfc3339(&update.begin), parse_rfc3339(&update.end))
+    else {
+        return Err(StatusCode::BAD_REQUEST);
+    };
+    if begin >= end {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    sqlx::query(
+        "INSERT INTO contest_config (key, value) VALUES ('contest_begin', $1), ('contest_end', $2) \
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+    )
+    .bind(begin.to_rfc3339())
+    .bind(end.to_rfc3339())
+    .execute(&pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(CorrectionResponse { status: "ok" }))
 }
 
 /// Update one result and retain the previous value for operator review.

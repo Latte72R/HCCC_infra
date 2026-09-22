@@ -138,18 +138,20 @@ pub async fn setup_session_store() {
 }
 
 /// Return whether the contest has not yet begun or not.
+/// Reads the admin-editable period from the database.
 #[must_use]
-pub fn is_contest_has_not_yet_begun() -> bool {
-    let (begin, _end) = constants::contest_duration();
+pub async fn is_contest_has_not_yet_begun(repo: &database::RepositoryProvider) -> bool {
+    let (begin, _end) = repo.contest_period().await;
     let now = chrono::Local::now();
 
     now < begin
 }
 
 /// Return whether or not the contest is underway.
+/// Reads the admin-editable period from the database.
 #[must_use]
-pub fn is_contest_underway() -> bool {
-    let (begin, end) = constants::contest_duration();
+pub async fn is_contest_underway(repo: &database::RepositoryProvider) -> bool {
+    let (begin, end) = repo.contest_period().await;
     let now = chrono::Local::now();
 
     begin <= now && now <= end

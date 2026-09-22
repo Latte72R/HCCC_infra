@@ -24,7 +24,7 @@ async fn all_problem(
     Extension(repository_provider): Extension<RepositoryProvider>,
 ) -> Json<AllProblems> {
     tracing::debug!("/api/problems");
-    if is_contest_has_not_yet_begun() {
+    if is_contest_has_not_yet_begun(&repository_provider).await {
         Json(AllProblems::error(
             "forbidden",
             "problems has not been opened yet",
@@ -42,7 +42,7 @@ async fn problem_from_id(
     Extension(repository_provider): Extension<RepositoryProvider>,
 ) -> Json<Problem> {
     tracing::debug!("/api/problems/:id");
-    if is_contest_has_not_yet_begun() {
+    if is_contest_has_not_yet_begun(&repository_provider).await {
         Json(Problem::error(
             "forbidden",
             "problems has not been opened yet",

@@ -88,6 +88,13 @@ CREATE TABLE admin_judge_audit (
     changed_at timestamptz not null DEFAULT now()
 );
 
+-- Contest period, editable by admins via /api/admin/contest.
+-- Seeded from CONTEST_BEGIN/CONTEST_END at web startup when empty.
+CREATE TABLE contest_config (
+    key text primary key,
+    value text not null
+);
+
 -- Default administrator: admin / P@ssw0rd.
 -- Password column stores hex(SHA256(password)).
 INSERT INTO accounts (id, name, password) VALUES (

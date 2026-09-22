@@ -44,6 +44,10 @@ pub async fn app() -> Router {
         .route("/readyz", routing::get(ready))
         .route("/api/admin/overview", routing::get(admin::overview))
         .route(
+            "/api/admin/contest",
+            routing::get(admin::get_contest_period).put(admin::update_contest_period),
+        )
+        .route(
             "/api/admin/submissions/:id/judgement",
             routing::put(admin::correct_judgement),
         )

@@ -26,7 +26,7 @@ async fn from_user_id(
     tracing::debug!("/api/submissions");
     let submission_repo = repository_provider.submission();
     if let Some(user_id) = param.user_id {
-        if is_contest_underway()
+        if is_contest_underway(&repository_provider).await
             && user_context.user_id() != user_id
             && !crate::is_admin_user(user_context.user_id())
         {
@@ -37,7 +37,9 @@ async fn from_user_id(
         } else {
             Json(services::get_user_submissions(&submission_repo, user_id).await)
         }
-    } else if is_contest_underway() && !crate::is_admin_user(user_context.user_id()) {
+    } else if is_contest_underway(&repository_provider).await
+        && !crate::is_admin_user(user_context.user_id())
+    {
         Json(UserSubmissions::error(
             "forbidden",
             "You won't be able to see other users' submissions during the contest",
@@ -56,7 +58,7 @@ async fn from_submit_id(
     tracing::debug!("/api/submissions/:id");
     let submission_repo = repository_provider.submission();
     let submission = services::get_submission(&submission_repo, id).await;
-    if is_contest_underway()
+    if is_contest_underway(&repository_provider).await
         && submission.owner_id() != user_context.user_id()
         && !crate::is_admin_user(user_context.user_id())
     {

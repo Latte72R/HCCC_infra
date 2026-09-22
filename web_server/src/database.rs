@@ -17,6 +17,7 @@ pub async fn layer() -> Extension<RepositoryProvider> {
     let pool = Pool::builder().build(manager).await.unwrap();
 
     ensure_default_admin(&pool).await;
+    ensure_contest_config(&pool).await;
 
     Extension(RepositoryProvider(pool))
 }
@@ -55,4 +56,57 @@ impl RepositoryProvider {
     pub fn submission(&self) -> SubmissionImpl<'_> {
         SubmissionImpl { pool: &self.0 }
     }
+
+    /// Current contest period. Prefers the admin-editable DB config and falls
+    /// back to the CONTEST_BEGIN/CONTEST_END environment on fresh errors.
+    pub async fn contest_period(
+        &self,
+    ) -> (
+        chrono::DateTime<chrono::Local>,
+        chrono::DateTime<chrono::Local>,
+    ) {
+        let conn = self.0.get().await.unwrap();
+        let read = async |key: &str| {
+            conn.query_opt("SELECT value FROM contest_config WHERE key = $1", &[&key])
+                .await
+                .ok()
+                .flatten()
+                .map(|row| row.get::<_, String>("value"))
+        };
+        let (default_begin, default_end) = crate::constants::contest_duration();
+        let begin = read("contest_begin")
+            .await
+            .and_then(|v| parse_period(&v))
+            .unwrap_or(default_begin);
+        let end = read("contest_end")
+            .await
+            .and_then(|v| parse_period(&v))
+            .unwrap_or(default_end);
+        (begin, end)
+    }
+}
+
+/// Parse an RFC3339 timestamp stored in contest_config.
+fn parse_period(value: &str) -> Option<chrono::DateTime<chrono::Local>> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|dt| dt.with_timezone(&chrono::Local))
+}
+
+/// Create contest_config and seed it from the environment when empty.
+/// Idempotent; mirrors scripts/migrations/004_contest_config.sql.
+async fn ensure_contest_config(pool: &ConnectionPool) {
+    let conn = pool.get().await.unwrap();
+    conn.batch_execute(
+        "CREATE TABLE IF NOT EXISTS contest_config (key text primary key, value text not null);",
+    )
+    .await
+    .unwrap();
+    let (begin, end) = crate::constants::contest_duration();
+    conn.execute(
+        "INSERT INTO contest_config (key, value) VALUES ('contest_begin', $1), ('contest_end', $2) ON CONFLICT (key) DO NOTHING",
+        &[&begin.to_rfc3339(), &end.to_rfc3339()],
+    )
+    .await
+    .unwrap();
 }
