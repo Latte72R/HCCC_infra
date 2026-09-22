@@ -87,6 +87,7 @@ pub async fn submit(
             user_context.user_id(),
             id,
             req.asm,
+            &req.arch,
             req.is_ce,
             req.error_line_number,
         )
@@ -98,6 +99,7 @@ pub async fn submit(
 #[derive(Deserialize)]
 pub struct SubmitReq {
     asm: String,
+    arch: String,
     #[serde(rename = "isCE")]
     is_ce: bool,
     error_line_number: Option<i32>,

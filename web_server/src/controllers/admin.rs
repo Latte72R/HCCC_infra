@@ -49,6 +49,92 @@ pub struct ContestPeriod {
     end: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminTestcase {
+    id: i32,
+    input: Option<String>,
+    expect: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminProblem {
+    id: i32,
+    title: String,
+    test_target: String,
+    score: i32,
+    is_wrong_code: bool,
+    testcase_count: i64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminProblemDetail {
+    id: i32,
+    title: String,
+    statement: String,
+    code: String,
+    input_desc: Option<String>,
+    output_desc: Option<String>,
+    test_target: String,
+    score: i32,
+    is_wrong_code: bool,
+    error_line_number: Option<i32>,
+    testcases: Vec<AdminTestcase>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestcaseInput {
+    input: Option<String>,
+    expect: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProblemInput {
+    title: String,
+    statement: String,
+    code: String,
+    input_desc: Option<String>,
+    output_desc: Option<String>,
+    test_target: String,
+    score: i32,
+    is_wrong_code: bool,
+    error_line_number: Option<i32>,
+    testcases: Vec<TestcaseInput>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProblemCreated {
+    status: &'static str,
+    id: i32,
+}
+
+fn validate_problem(input: &ProblemInput) -> bool {
+    matches!(
+        input.test_target.as_str(),
+        "ExitCode" | "StdOut" | "NoTestCase"
+    ) && !input.title.is_empty()
+        && !input.statement.is_empty()
+        && !input.code.is_empty()
+        && input.title.len() <= 200
+        && input.statement.len() <= 100_000
+        && input.code.len() <= 100_000
+        && input.score >= 0
+        && input.testcases.len() <= 100
+        && input
+            .testcases
+            .iter()
+            .all(|t| t.input.as_ref().map_or(true, |v| v.len() <= 10_000))
+        && input
+            .testcases
+            .iter()
+            .all(|t| t.expect.as_ref().map_or(true, |v| v.len() <= 10_000))
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContestPeriodUpdate {
@@ -204,4 +290,224 @@ pub async fn overview(
             })
             .collect(),
     }))
+}
+
+/// List all problems with judge metadata (admin only).
+pub async fn list_problems(
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<Vec<AdminProblem>>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let rows = sqlx::query(
+        "SELECT p.id, p.title, p.test_target::text AS test_target, \
+         p.score, p.is_wrong_code, count(t.id) AS testcase_count \
+         FROM problems p LEFT JOIN testcases t ON t.problem_id = p.id \
+         GROUP BY p.id ORDER BY p.id",
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|row| AdminProblem {
+                id: row.get("id"),
+                title: row.get("title"),
+                test_target: row.get("test_target"),
+                score: row.get("score"),
+                is_wrong_code: row.get("is_wrong_code"),
+                testcase_count: row.get("testcase_count"),
+            })
+            .collect(),
+    ))
+}
+
+/// Full problem detail with testcases (admin only).
+pub async fn get_problem(
+    Path(id): Path<i32>,
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<AdminProblemDetail>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let row = sqlx::query(
+        "SELECT id, title, statement, code, input_desc, output_desc, \
+         test_target::text AS test_target, score, \
+         is_wrong_code, error_line_number FROM problems WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::NOT_FOUND)?;
+    let cases =
+        sqlx::query("SELECT id, input, expect FROM testcases WHERE problem_id = $1 ORDER BY id")
+            .bind(id)
+            .fetch_all(&pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(AdminProblemDetail {
+        id: row.get("id"),
+        title: row.get("title"),
+        statement: row.get("statement"),
+        code: row.get("code"),
+        input_desc: row.get("input_desc"),
+        output_desc: row.get("output_desc"),
+        test_target: row.get("test_target"),
+        score: row.get("score"),
+        is_wrong_code: row.get("is_wrong_code"),
+        error_line_number: row.get("error_line_number"),
+        testcases: cases
+            .into_iter()
+            .map(|c| AdminTestcase {
+                id: c.get("id"),
+                input: c.get("input"),
+                expect: c.get("expect"),
+            })
+            .collect(),
+    }))
+}
+
+/// Create a problem with testcases (admin only). Empty testcase lists are
+/// stored as a single (NULL, NULL) row, matching the seed convention.
+pub async fn create_problem(
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+    Json(input): Json<ProblemInput>,
+) -> Result<Json<ProblemCreated>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    if !validate_problem(&input) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let mut transaction = pool
+        .begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let row = sqlx::query(
+        "INSERT INTO problems (title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score) \
+         VALUES ($1, $2, $3, $4, $5, $6::testtarget, $7, $8, $9) RETURNING id",
+    )
+    .bind(&input.title)
+    .bind(&input.statement)
+    .bind(&input.code)
+    .bind(&input.input_desc)
+    .bind(&input.output_desc)
+    .bind(&input.test_target)
+    .bind(input.is_wrong_code)
+    .bind(input.error_line_number)
+    .bind(input.score)
+    .fetch_one(&mut transaction)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let problem_id: i32 = row.get("id");
+    insert_testcases(&mut transaction, problem_id, &input.testcases).await?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(ProblemCreated {
+        status: "ok",
+        id: problem_id,
+    }))
+}
+
+/// Replace a problem and its testcases (admin only).
+pub async fn update_problem(
+    Path(id): Path<i32>,
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+    Json(input): Json<ProblemInput>,
+) -> Result<Json<CorrectionResponse>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    if !validate_problem(&input) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let mut transaction = pool
+        .begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let updated = sqlx::query(
+        "UPDATE problems SET title = $1, statement = $2, code = $3, input_desc = $4, output_desc = $5, \
+         test_target = $6::testtarget, is_wrong_code = $7, error_line_number = $8, score = $9 \
+         WHERE id = $10",
+    )
+    .bind(&input.title)
+    .bind(&input.statement)
+    .bind(&input.code)
+    .bind(&input.input_desc)
+    .bind(&input.output_desc)
+    .bind(&input.test_target)
+    .bind(input.is_wrong_code)
+    .bind(input.error_line_number)
+    .bind(input.score)
+    .bind(id)
+    .execute(&mut transaction)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if updated.rows_affected() != 1 {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    sqlx::query("DELETE FROM testcases WHERE problem_id = $1")
+        .bind(id)
+        .execute(&mut transaction)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    insert_testcases(&mut transaction, id, &input.testcases).await?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(CorrectionResponse { status: "ok" }))
+}
+
+/// Delete a problem. Submissions and testcases follow via ON DELETE CASCADE.
+/// Submits already judged keep no copy, so deletion is irreversible.
+pub async fn delete_problem(
+    Path(id): Path<i32>,
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<CorrectionResponse>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let deleted = sqlx::query("DELETE FROM problems WHERE id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if deleted.rows_affected() != 1 {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    Ok(Json(CorrectionResponse { status: "ok" }))
+}
+
+async fn insert_testcases(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    problem_id: i32,
+    testcases: &[TestcaseInput],
+) -> Result<(), StatusCode> {
+    if testcases.is_empty() {
+        sqlx::query("INSERT INTO testcases (problem_id, input, expect) VALUES ($1, NULL, NULL)")
+            .bind(problem_id)
+            .execute(&mut *transaction)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        return Ok(());
+    }
+    for case in testcases {
+        sqlx::query("INSERT INTO testcases (problem_id, input, expect) VALUES ($1, $2, $3)")
+            .bind(problem_id)
+            .bind(&case.input)
+            .bind(&case.expect)
+            .execute(&mut *transaction)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+    Ok(())
 }

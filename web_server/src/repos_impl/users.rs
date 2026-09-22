@@ -1,6 +1,5 @@
 use tokio_postgres::Row;
 
-use crate::constants::contest_duration;
 use crate::database::ConnectionPool;
 use crate::entities::{Rank, User, UserObject};
 use crate::repositories::Users;
@@ -42,7 +41,7 @@ impl<'a> Users for UserImpl<'a> {
     /// };
     /// ```
     async fn create_ranking(&self) -> Vec<Rank> {
-        let (start, end) = contest_duration();
+        let (start, end) = crate::database::contest_period_from_pool(self.pool).await;
         let conn = self.pool.get().await.unwrap();
         let ac = conn
             .query(

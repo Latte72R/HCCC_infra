@@ -75,6 +75,7 @@ docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile tes
 ```
 
 - x86-64 と RISC-V の test_runner はどちらも x86-64 Linux 上で動く静的リンクの Rust バイナリです。RISC-V の提出プログラムは専用イメージ内のクロス GCC と QEMU user mode で実行します。
+- 問題にアーキテクチャの指定はありません。参加者は提出時に x86-64 / RISC-V を選び、選んだ側で実行されます。同じ問題を両方で解いても得点は増えません（ランキングは問題単位で集計）。
 
 infrastructure for [HCCC](https://github.com/Alignof/Human_C_Compiler_Contest)
 

@@ -1,4 +1,4 @@
-use crate::entities::{Submission, SubmissionObject};
+use crate::entities::{Arch, Submission, SubmissionObject};
 use chrono::{DateTime, Local};
 
 /// A trait for defining requests about submissions to the database.
@@ -13,6 +13,7 @@ pub trait Submissions {
         problem_id: i32,
         submit_time: DateTime<Local>,
         asm: &'a str,
+        arch: Arch,
         is_ce: bool,
         error_line_number: Option<i32>,
     ) -> Option<i32>;

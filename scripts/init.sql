@@ -43,7 +43,6 @@ CREATE TABLE problems -- 問題
     code text not null,
     input_desc text,
     output_desc text,
-    arch Arch,
     test_target TestTarget,
     is_wrong_code bool,
     error_line_number integer,
@@ -69,6 +68,8 @@ CREATE TABLE submits -- submit
     is_ce boolean not null,
     error_line_number integer,
     result JudgeResult not null,
+    -- Architecture chosen by the submitter at submit time.
+    arch Arch not null DEFAULT 'x8664',
     -- Multi-replica judge claim lease. NULL means unclaimed.
     claimed_at timestamptz,
     claimed_by text
@@ -104,9 +105,9 @@ INSERT INTO accounts (id, name, password) VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 SELECT setval('accounts_id_seq', (SELECT greatest(max(id), 1) FROM accounts));
 
+-- Seed rows use explicit ids; sync all serial sequences afterwards.
 -- 各問題のINSERT文
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     0,
     'Return 72',
@@ -116,7 +117,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -129,7 +129,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '72'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     1,
     'Addition of constants',
@@ -139,7 +139,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -152,7 +151,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '7'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     2,
     'Subtraction of constants',
@@ -162,7 +161,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -175,7 +173,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '200'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     3,
     'Four arithmetic operations',
@@ -185,7 +183,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -198,7 +195,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '72'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     4,
     'Local variable',
@@ -209,7 +206,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -222,7 +218,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '3'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     5,
     'Undefined variable',
@@ -232,7 +228,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     true,
     2,
@@ -245,7 +240,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     ''
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     6,
     'Call function',
@@ -258,7 +253,6 @@ int main() {
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -271,7 +265,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '5'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     7,
     'Global variable',
@@ -287,7 +281,6 @@ int main() {
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -300,7 +293,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '11'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     8,
     'Call function with args',
@@ -314,7 +307,6 @@ int main() {
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -327,7 +319,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '9'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     9,
     'String',
@@ -338,7 +330,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -351,7 +342,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '108'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     10,
     'Hello,world!',
@@ -364,7 +355,6 @@ int main() {
 }',
     '無し',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -377,7 +367,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     E'Hello, KCS1959!\n'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     11,
     'Sum',
@@ -391,7 +381,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -404,7 +393,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '55'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     13,
     'Echo',
@@ -419,7 +408,6 @@ int main() {
 }',
     '1 <= len(s) <= 29',
     '標準出力、入力文字列と同じ',
-    'x8664',
     'NoTestCase',
     true,
     5,
@@ -432,7 +420,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     null
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     14,
     'Length of string',
@@ -451,7 +439,6 @@ int main(void) {
 }',
     '1 <= len(s) <= 19',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -476,7 +463,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '入力された文字数は 7 です\n'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     15,
     'FizzBuzz',
@@ -501,7 +488,6 @@ int main() {
 }',
     '1 <= d <= 20',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -526,7 +512,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '12Fizz4BuzzFizz78FizzBuzz11Fizz1314FizzBuzz1617Fizz19Buzz'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     16,
     'Recursive GCD',
@@ -546,7 +532,6 @@ int main() {
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     true,
     null,
@@ -559,7 +544,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '6'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     17,
     'Multiplication',
@@ -575,7 +560,6 @@ VALUES (
 }',
     '無し',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -588,7 +572,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '6'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     18,
     'Increment, Decrement',
@@ -601,7 +585,6 @@ VALUES (
 }',
     '無し',
     'exitcodeで出力',
-    'x8664',
     'ExitCode',
     false,
     null,
@@ -614,7 +597,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '20'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     19,
     'Fibonacci',
@@ -634,7 +617,6 @@ int main() {
 }',
     '1 <= d <= 20',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -659,7 +641,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '10946'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     20,
     'Dereference operator',
@@ -676,7 +658,6 @@ int main() {
 }',
     '無し',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -689,7 +670,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '1000'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     21,
     'Switch',
@@ -714,7 +695,6 @@ int main() {
 }',
     '無し',
     '標準出力',
-    'x8664',
     'NoTestCase',
     true,
     11,
@@ -727,7 +707,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     null
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     22,
     'Ternary operator',
@@ -749,7 +729,6 @@ int main(void) {
 }',
     '1 <= d <= 5',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -774,7 +753,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '8'
 );
 
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
+INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
     23,
     'Prime number',
@@ -808,7 +787,6 @@ int main() {
 }',
     '1 <= N <= 30',
     '標準出力',
-    'x8664',
     'StdOut',
     false,
     null,
@@ -832,3 +810,7 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     '24',
     '89'
 );
+
+-- Seed rows use explicit ids; bring serial sequences in sync.
+SELECT setval('problems_id_seq', (SELECT greatest(max(id), 1) FROM problems));
+SELECT setval('testcases_id_seq', (SELECT greatest(max(id), 1) FROM testcases));

@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use tokio_postgres::Row;
 
 use crate::database::ConnectionPool;
-use crate::entities::{JudgeResult, ProblemObject, Submission, SubmissionObject, UserObject};
+use crate::entities::{Arch, JudgeResult, ProblemObject, Submission, SubmissionObject, UserObject};
 use crate::repositories::Submissions;
 
 /// Implementation for `Submissions`.
@@ -14,9 +14,14 @@ pub struct SubmissionImpl<'a> {
 impl<'a> Submissions for SubmissionImpl<'a> {
     /// Find a submittion by id.
     async fn find_submission(&self, id: i32) -> Option<Submission> {
+        const TARGET_COLUMN: &str = "submits.id, submits.time, submits.asm, submits.arch, submits.error_message, submits.is_ce, submits.error_line_number, submits.result, submits.user_id, accounts.name, submits.problem_id, problems.title, problems.statement, problems.code, problems.input_desc, problems.output_desc, problems.score";
+        const TARGET_TABLES: &str = "submits JOIN accounts ON submits.user_id = accounts.id JOIN problems ON submits.problem_id = problems.id";
         let conn = self.pool.get().await.unwrap();
         let row = conn
-            .query_opt("SELECT * FROM submits JOIN accounts ON submits.user_id = accounts.id JOIN problems ON submits.problem_id = problems.id WHERE submits.id = $1", &[&id])
+            .query_opt(
+                &format!("SELECT {TARGET_COLUMN} FROM {TARGET_TABLES} WHERE submits.id = $1"),
+                &[&id],
+            )
             .await
             .unwrap();
 
@@ -30,14 +35,15 @@ impl<'a> Submissions for SubmissionImpl<'a> {
         problem_id: i32,
         submit_time: DateTime<Local>,
         asm: &'b str,
+        arch: Arch,
         is_ce: bool,
         error_line_number: Option<i32>,
     ) -> Option<i32> {
         let conn = self.pool.get().await.unwrap();
         let row = conn
             .query_opt(
-                "INSERT INTO submits (user_id, problem_id, time, asm, error_message, result, is_ce, error_line_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-                &[&user_id, &problem_id, &submit_time, &asm, &"", &JudgeResult::Pending, &is_ce, &error_line_number]
+                "INSERT INTO submits (user_id, problem_id, time, asm, arch, error_message, result, is_ce, error_line_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+                &[&user_id, &problem_id, &submit_time, &asm, &arch, &"", &JudgeResult::Pending, &is_ce, &error_line_number]
             )
             .await
             .unwrap();
@@ -47,7 +53,7 @@ impl<'a> Submissions for SubmissionImpl<'a> {
 
     /// Get all submissions.
     async fn get_all_submissions(&self) -> Vec<SubmissionObject> {
-        const TARGET_COLUMN: &str = "submits.id, time, asm, error_message, is_ce, submits.error_line_number, result, user_id, name, problem_id, title, statement, code, input_desc, output_desc, problems.score";
+        const TARGET_COLUMN: &str = "submits.id, time, asm, submits.arch, error_message, is_ce, submits.error_line_number, result, user_id, name, problem_id, title, statement, code, input_desc, output_desc, problems.score";
         const TARGET_TABLES: &str = "submits JOIN accounts ON submits.user_id = accounts.id JOIN problems ON submits.problem_id = problems.id";
         let conn = self.pool.get().await.unwrap();
         let row = conn
@@ -63,7 +69,7 @@ impl<'a> Submissions for SubmissionImpl<'a> {
 
     /// Get all submissions that specified user submitted.
     async fn user_submitted(&self, user_id: i32) -> Vec<SubmissionObject> {
-        const TARGET_COLUMN: &str = "submits.id, time, asm, error_message, is_ce, submits.error_line_number, result, user_id, name, problem_id, title, statement, code, input_desc, output_desc, problems.score";
+        const TARGET_COLUMN: &str = "submits.id, time, asm, submits.arch, error_message, is_ce, submits.error_line_number, result, user_id, name, problem_id, title, statement, code, input_desc, output_desc, problems.score";
         const TARGET_TABLES: &str = "submits JOIN accounts ON submits.user_id = accounts.id JOIN problems ON submits.problem_id = problems.id";
         let conn = self.pool.get().await.unwrap();
         let row = conn
@@ -91,6 +97,7 @@ impl From<Row> for Submission {
             r.get("is_ce"),
             r.get("error_line_number"),
             r.get("result"),
+            r.get("arch"),
             UserObject::new(r.get("user_id"), r.get("name")),
             ProblemObject::new(
                 r.get("problem_id"),
@@ -116,6 +123,7 @@ impl From<Row> for SubmissionObject {
             r.get("is_ce"),
             r.get("error_line_number"),
             r.get("result"),
+            r.get("arch"),
             UserObject::new(r.get("user_id"), r.get("name")),
             ProblemObject::new(
                 r.get("problem_id"),

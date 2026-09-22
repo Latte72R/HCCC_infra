@@ -1,4 +1,4 @@
-use crate::entities::{JudgeResult, Problem, Submission, User, UserSubmissions};
+use crate::entities::{Arch, JudgeResult, Problem, Submission, User, UserSubmissions};
 use crate::repositories::{Problems, Submissions, Users};
 use chrono::Local;
 
@@ -27,9 +27,18 @@ pub async fn submit_asm(
     user_id: i32,
     problem_id: i32,
     asm: String,
+    arch: &str,
     is_ce: bool,
     error_line_number: Option<i32>,
 ) -> Submission {
+    if !matches!(arch, "x8664" | "riscv") {
+        return Submission::error();
+    }
+    let arch_enum = if arch == "riscv" {
+        Arch::riscv
+    } else {
+        Arch::x8664
+    };
     let submit_time = Local::now();
     let Some(submission_id) = repo_submit
         .store_submission(
@@ -37,6 +46,7 @@ pub async fn submit_asm(
             problem_id,
             submit_time,
             &asm,
+            arch_enum,
             is_ce,
             error_line_number,
         )
@@ -60,6 +70,7 @@ pub async fn submit_asm(
         is_ce,
         error_line_number,
         JudgeResult::Pending,
+        arch_enum,
         user_obj.get_object(),
         problem_obj.get_object(),
     )

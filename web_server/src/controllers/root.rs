@@ -48,6 +48,16 @@ pub async fn app() -> Router {
             routing::get(admin::get_contest_period).put(admin::update_contest_period),
         )
         .route(
+            "/api/admin/problems",
+            routing::get(admin::list_problems).post(admin::create_problem),
+        )
+        .route(
+            "/api/admin/problems/:id",
+            routing::get(admin::get_problem)
+                .put(admin::update_problem)
+                .delete(admin::delete_problem),
+        )
+        .route(
             "/api/admin/submissions/:id/judgement",
             routing::put(admin::correct_judgement),
         )

@@ -72,6 +72,7 @@ impl From<Row> for Submit {
             r.get("problem_id"),
             r.get("time"),
             r.get("asm"),
+            r.get("arch"),
             r.get("error_message"),
             r.get("is_ce"),
             r.get("error_line_number"),

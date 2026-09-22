@@ -27,7 +27,7 @@ async fn judge(
         }
     }
 
-    let docker_container = match problem.arch {
+    let docker_container = match submit.arch {
         Arch::x8664 => std::env::var("HCCC_RUNNER_IMAGE_X8664").unwrap_or_else(|_| {
             "ghcr.io/humanccompilercontest/hccc_infra:test_runner_x8664-develop".to_string()
         }),

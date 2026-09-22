@@ -69,7 +69,7 @@ mod entities {
     pub use account::{Account, AccountResponse};
     pub use problem::{AllProblems, Problem, ProblemObject};
     pub use ranking::{Rank, Ranking};
-    pub use submission::{JudgeResult, Submission, SubmissionObject, UserSubmissions};
+    pub use submission::{Arch, JudgeResult, Submission, SubmissionObject, UserSubmissions};
     pub use users::{AllUsers, User, UserObject};
 }
 
