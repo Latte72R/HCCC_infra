@@ -32,9 +32,9 @@ RISCV_TOOLCHAIN_IMAGE=hccc-riscv-toolchain:local docker compose -f docker-compos
 また、`.env.example`の環境変数をセットすることが出来ます。
 
 フロントエンドも同じ Compose 構成で起動します。`http://localhost:3000` からアクセスできます。
-管理者にするアカウントの ID は `.env` の `ADMIN_USER_IDS` にカンマ区切りで設定してください。
+管理者アカウントは最初から `admin` / `P@ssw0rd`（ID 1）で作成されます。
 管理画面は `/admin` です。判定修正は変更前後の結果と管理者 ID を
-`admin_judge_audit` に記録します。既存 DB でも初回修正時にテーブルを作成します。
+`admin_judge_audit` に記録します。既存 DB でも web 起動時に自動作成されます。
 
 ## データベース
 

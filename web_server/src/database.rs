@@ -16,7 +16,24 @@ pub async fn layer() -> Extension<RepositoryProvider> {
     let manager = PostgresConnectionManager::new_from_stringlike(database_url(), NoTls).unwrap();
     let pool = Pool::builder().build(manager).await.unwrap();
 
+    ensure_default_admin(&pool).await;
+
     Extension(RepositoryProvider(pool))
+}
+
+/// Seed the default administrator (admin / P@ssw0rd) on pre-seed-era
+/// databases. Idempotent; mirrors scripts/migrations/003_seed_admin.sql.
+/// Password column stores hex(SHA256(password)).
+async fn ensure_default_admin(pool: &ConnectionPool) {
+    let conn = pool.get().await.unwrap();
+    conn.batch_execute(
+        "INSERT INTO accounts (id, name, password) VALUES \
+         (1, 'admin', 'b03ddf3ca2e714a6548e7495e2a03f5e824eaac9837cd7f159c67b90fb4b7342') \
+         ON CONFLICT (id) DO NOTHING; \
+         SELECT setval('accounts_id_seq', (SELECT greatest(max(id), 1) FROM accounts));",
+    )
+    .await
+    .unwrap();
 }
 
 #[derive(Clone)]
