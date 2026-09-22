@@ -1,19 +1,14 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.65.0 AS chef
+ARG RISCV_TOOLCHAIN_IMAGE=hccc-riscv-toolchain:local
+
+FROM rust:1.98.1-bookworm AS builder
 WORKDIR /app
-
-FROM chef AS planner
+RUN apt-get update && apt-get install -y --no-install-recommends musl-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup target add x86_64-unknown-linux-musl
 COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
-RUN cat recipe.json
+RUN cargo build --release --target x86_64-unknown-linux-musl --bin test_runner --no-default-features --features riscv
 
-FROM chef AS builder 
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
-COPY . .
-RUN cargo build --config net.git-fetch-with-cli=true --release --bin test_runner --features riscv
-
-FROM ghcr.io/alignof/riscv_toolchain_docker:master
-ENV PATH $PATH:/opt/riscv/bin:$HOME/.cargo/bin
-COPY --from=builder /app/target/release/test_runner /work/
+FROM ${RISCV_TOOLCHAIN_IMAGE}
+ENV PATH="/opt/riscv/bin:${PATH}"
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/test_runner /work/
 ENTRYPOINT ["/work/test_runner"]
-

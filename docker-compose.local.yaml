@@ -43,6 +43,8 @@ services:
     build:
       context: ./test_runner
       dockerfile: riscv.Dockerfile
+      args:
+        RISCV_TOOLCHAIN_IMAGE: ${RISCV_TOOLCHAIN_IMAGE:-hccc-riscv-toolchain:local}
 
 volumes:
   web_server_cargo_registry:

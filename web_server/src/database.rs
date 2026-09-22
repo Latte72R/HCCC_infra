@@ -23,19 +23,19 @@ pub async fn layer() -> Extension<RepositoryProvider> {
 pub struct RepositoryProvider(ConnectionPool);
 
 impl RepositoryProvider {
-    pub fn accounts(&self) -> AccountsImpl {
+    pub fn accounts(&self) -> AccountsImpl<'_> {
         AccountsImpl { pool: &self.0 }
     }
 
-    pub fn user(&self) -> UserImpl {
+    pub fn user(&self) -> UserImpl<'_> {
         UserImpl { pool: &self.0 }
     }
 
-    pub fn problem(&self) -> ProblemImpl {
+    pub fn problem(&self) -> ProblemImpl<'_> {
         ProblemImpl { pool: &self.0 }
     }
 
-    pub fn submission(&self) -> SubmissionImpl {
+    pub fn submission(&self) -> SubmissionImpl<'_> {
         SubmissionImpl { pool: &self.0 }
     }
 }

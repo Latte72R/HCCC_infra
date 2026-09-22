@@ -124,6 +124,17 @@ impl SubmissionObject {
 }
 
 impl Submission {
+    pub fn owner_id(&self) -> i32 {
+        self.submission.user.id()
+    }
+
+    pub fn forbidden() -> Self {
+        let mut response = Self::error();
+        response.status = "forbidden".to_string();
+        response.errorMessage =
+            Some("You cannot view this submission during the contest".to_string());
+        response
+    }
     /// Return successeed response.
     pub fn new(
         id: i32,

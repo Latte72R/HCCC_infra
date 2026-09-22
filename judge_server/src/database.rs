@@ -28,17 +28,17 @@ impl RepositoryProvider {
     }
 
     #[must_use]
-    pub fn submit(&self) -> SubmitImpl {
+    pub fn submit(&self) -> SubmitImpl<'_> {
         SubmitImpl { pool: &self.0 }
     }
 
     #[must_use]
-    pub fn problem(&self) -> ProblemImpl {
+    pub fn problem(&self) -> ProblemImpl<'_> {
         ProblemImpl { pool: &self.0 }
     }
 
     #[must_use]
-    pub fn testcase(&self) -> TestcaseImpl {
+    pub fn testcase(&self) -> TestcaseImpl<'_> {
         TestcaseImpl { pool: &self.0 }
     }
 }

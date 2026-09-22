@@ -1,17 +1,13 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.65.0 AS chef
+FROM rust:1.98.1-bookworm AS builder
 WORKDIR /app
-
-FROM chef AS planner
+RUN apt-get update && apt-get install -y --no-install-recommends musl-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup target add x86_64-unknown-linux-musl
 COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
-RUN cat recipe.json
+RUN cargo build --release --target x86_64-unknown-linux-musl --bin test_runner --features x8664
 
-FROM chef AS builder 
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
-COPY . .
-RUN cargo build --release --bin test_runner --features x8664
-
-FROM gcc:12.2.0
-COPY --from=builder /app/target/release/test_runner /work/
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y --no-install-recommends binutils gcc libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/test_runner /work/
 ENTRYPOINT ["/work/test_runner"]

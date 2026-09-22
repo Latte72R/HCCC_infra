@@ -4,11 +4,45 @@
 use crate::arch::constants::EXEC_CMD;
 use crate::ExitCode;
 use serde::Deserialize;
+use std::process::{Output, Stdio};
 use std::time::Duration;
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 /// The test runner times out at 2000ms.
 const TLE_SEC: u64 = 2;
+
+async fn execute_program(input: Option<&str>) -> Output {
+    tokio::time::timeout(Duration::from_secs(TLE_SEC), execute_program_inner(input))
+        .await
+        .unwrap_or_else(|_| std::process::exit(ExitCode::TLE as i32))
+}
+
+async fn execute_program_inner(input: Option<&str>) -> Output {
+    let mut parts = EXEC_CMD.split_whitespace();
+    let executable = parts.next().expect("execution command missing");
+    let mut command = Command::new(executable);
+    command
+        .args(parts)
+        .kill_on_drop(true)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    if input.is_some() {
+        command.stdin(Stdio::piped());
+    }
+    let mut child = command
+        .spawn()
+        .unwrap_or_else(|_| std::process::exit(ExitCode::RE as i32));
+    if let Some(input) = input {
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(format!("{input}\n").as_bytes()).await;
+        }
+    }
+    child
+        .wait_with_output()
+        .await
+        .unwrap_or_else(|_| std::process::exit(ExitCode::RE as i32))
+}
 
 /// Testcase
 #[derive(Deserialize)]
@@ -56,55 +90,21 @@ impl Testcases {
 /// Just exec `test_target`.
 /// If the file exited successfully, it will be `AC`.
 pub async fn just_exec() {
-    // exec
-    let output = tokio::time::timeout(
-        Duration::from_secs(TLE_SEC),
-        Command::new("bash")
-            .kill_on_drop(true)
-            .arg("-c")
-            .arg(format!("{EXEC_CMD} 2>&1"))
-            .output(),
-    )
-    .await
-    .unwrap_or_else(|_| {
-        std::process::exit(ExitCode::TLE as i32);
-    })
-    .unwrap_or_else(|_| {
-        std::process::exit(ExitCode::RE as i32);
-    });
+    let output = execute_program(None).await;
 
-    if !output.stderr.is_empty() {
-        eprintln!("{}", std::str::from_utf8(&output.stderr).unwrap());
+    if !output.status.success() {
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         std::process::exit(ExitCode::RE as i32);
     }
 
-    // WA when submit to wrong code
-    std::process::exit(ExitCode::WA as i32);
+    std::process::exit(ExitCode::AC as i32);
 }
 
 /// Judge with testcases.
 pub async fn with_testcase(testcases: Testcases) {
     for case in testcases.tests {
         // exec and test
-        let output = tokio::time::timeout(
-            Duration::from_secs(TLE_SEC),
-            Command::new("bash")
-                .kill_on_drop(true)
-                .arg("-c")
-                .arg(format!(
-                    "echo {} | {} 2>&1",
-                    case.input.expect("no testcase input"),
-                    EXEC_CMD,
-                ))
-                .output(),
-        )
-        .await
-        .unwrap_or_else(|_| {
-            std::process::exit(ExitCode::TLE as i32);
-        })
-        .unwrap_or_else(|_| {
-            std::process::exit(ExitCode::RE as i32);
-        });
+        let output = execute_program(Some(case.input.as_deref().unwrap_or(""))).await;
 
         match testcases.test_target {
             TestTarget::ExitCode => {

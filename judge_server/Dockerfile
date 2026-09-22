@@ -1,10 +1,10 @@
-FROM rust:1.72.1 AS builder
+FROM rust:1.98.1-bookworm AS builder
 
 # Build judge_server
 WORKDIR /app
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
+    --mount=type=cache,id=hccc-judge-bookworm,target=/app/target \
     cargo build --release && cp target/release/judge_server /app/judge_server
 
 FROM debian:bookworm-slim AS runner
@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y \
   curl \
   && rm -rf /var/lib/apt/lists/*
 
-ENV DOCKER_CLIENT_VERSION=24.0.6
-ENV DOCKER_API_VERSION=1.43
+ENV DOCKER_CLIENT_VERSION=29.8.1
 RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_CLIENT_VERSION}.tgz \
   | tar -xzC /usr/local/bin --strip=1 docker/docker
 

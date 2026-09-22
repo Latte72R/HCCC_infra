@@ -2,10 +2,10 @@
 //! It monitors the database tables, retrieves Pending submissions,
 //! judges them using `test_runner`, and stores the results in the database.
 
-use futures::future;
 use judge_server::database::RepositoryProvider;
 use judge_server::entities::{Arch, JudgeResult, Problem, Submit, Testcase};
 use judge_server::repositories::{Problems, Submits, Testcases};
+use std::collections::HashMap;
 use tokio::process::Command;
 use tokio::time::{sleep, Duration};
 
@@ -32,15 +32,30 @@ async fn judge(
         Arch::riscv => "ghcr.io/humanccompilercontest/hccc_infra:test_runner_riscv-develop",
     };
 
-    let result = Command::new("bash")
-        .arg("-c")
-        .arg(dbg!(format!(
-            "docker run --rm --memory=128M --cpus=\"0.05\" {} {} {} {}",
-            docker_container,
-            base64::encode(&submit.asm),
-            serde_json::to_string(&problem.test_target).expect("getting renamed name failed"),
-            base64::encode(serde_json::to_string(&testcase).expect("serialization failed")),
-        )))
+    let custom_runner = std::env::var("HCCC_RUNNER_EXECUTABLE").ok();
+    let mut command = if let Some(ref executable) = custom_runner {
+        Command::new(executable)
+    } else {
+        let mut command = Command::new("docker");
+        command.args([
+            "run",
+            "--rm",
+            "--network=none",
+            "--pids-limit=64",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges",
+            "--memory=128M",
+            "--cpus=0.05",
+        ]);
+        command
+    };
+    let result = command
+        .arg(docker_container)
+        .arg(base64::encode(&submit.asm))
+        .arg(problem.test_target.as_arg())
+        .arg(base64::encode(
+            serde_json::to_string(&testcase).expect("serialization failed"),
+        ))
         .output()
         .await;
 
@@ -96,27 +111,44 @@ async fn main() {
 
     let repo = RepositoryProvider::new().await;
     let repo_submit = repo.submit();
-    let problems = repo.problem().get_all_problems().await;
-    let testcases = repo
+    let problems: HashMap<_, _> = repo
+        .problem()
+        .get_all_problems()
+        .await
+        .into_iter()
+        .map(|problem| (problem.id(), problem))
+        .collect();
+    let testcases: HashMap<_, _> = repo
         .testcase()
-        .get_all_testcases(problems.len() as u32)
+        .get_all_testcases(problems.keys().copied().collect())
         .await;
 
     loop {
         let submits = repo_submit.get_pending_submits().await;
-        let works: Vec<_> = submits
-            .iter()
-            .map(|submit| {
-                judge(
-                    submit,
-                    &problems[submit.problem_id() as usize],
-                    &testcases[submit.problem_id() as usize],
-                )
-            })
-            .collect();
-        let rets = future::join_all(works).await;
-
-        for ret in rets {
+        for submit in &submits {
+            let Some(problem) = problems.get(&submit.problem_id()) else {
+                tracing::error!("Unknown problem id {}", submit.problem_id());
+                repo_submit
+                    .store_result(
+                        JudgeResult::SystemError,
+                        "Unknown problem".to_string(),
+                        submit.id(),
+                    )
+                    .await;
+                continue;
+            };
+            let Some(testcase) = testcases.get(&submit.problem_id()) else {
+                tracing::error!("Missing testcases for problem {}", submit.problem_id());
+                repo_submit
+                    .store_result(
+                        JudgeResult::SystemError,
+                        "Missing testcases".to_string(),
+                        submit.id(),
+                    )
+                    .await;
+                continue;
+            };
+            let ret = judge(submit, problem, testcase).await;
             let (judge_result, error_message, submit_id) = ret;
             repo_submit
                 .store_result(

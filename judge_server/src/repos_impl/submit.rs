@@ -29,7 +29,7 @@ impl<'a> Submits for SubmitImpl<'a> {
     async fn store_result(&self, result: JudgeResult, error_message: String, submit_id: i32) {
         let conn = self.pool.get().await.unwrap();
         conn.query_opt(
-            "UPDATE submits set result = $1, error_message = $2 WHERE id = $3",
+            "UPDATE submits set result = $1, error_message = $2 WHERE id = $3 AND result = 'Pending'",
             &[&result, &error_message, &submit_id],
         )
         .await

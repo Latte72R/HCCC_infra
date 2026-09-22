@@ -16,6 +16,16 @@ pub enum TestTarget {
     NoTestCase,
 }
 
+impl TestTarget {
+    pub fn as_arg(&self) -> &'static str {
+        match self {
+            Self::ExitCode => "exitcode",
+            Self::StdOut => "stdout",
+            Self::NoTestCase => "none",
+        }
+    }
+}
+
 /// Architecture
 #[derive(FromSql, Serialize, Deserialize, Debug)]
 #[postgres(name = "arch")]
@@ -31,7 +41,7 @@ pub enum Arch {
 #[derive(FromSql)]
 pub struct Problem {
     /// Submit id.
-    _id: i32,
+    id: i32,
     /// Target Architecture.
     pub arch: Arch,
     /// Test target
@@ -52,11 +62,15 @@ impl Problem {
         error_line_number: Option<i32>,
     ) -> Self {
         Problem {
-            _id: id,
+            id,
             arch,
             test_target,
             is_wrong_code,
             error_line_number,
         }
+    }
+
+    pub fn id(&self) -> i32 {
+        self.id
     }
 }

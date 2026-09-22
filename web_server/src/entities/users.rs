@@ -22,6 +22,8 @@ pub struct User {
     /// Error message.
     #[serde(rename = "errorMessage")]
     error_message: Option<String>,
+    #[serde(rename = "isAdmin")]
+    is_admin: bool,
 }
 
 /// Response data of `/api/user/`.
@@ -52,6 +54,10 @@ impl UserObject {
             name: String::new(),
         }
     }
+
+    pub fn id(&self) -> i32 {
+        self.id
+    }
 }
 
 impl User {
@@ -61,6 +67,7 @@ impl User {
             status,
             user: UserObject { id, name },
             error_message,
+            is_admin: false,
         }
     }
 
@@ -73,12 +80,18 @@ impl User {
                 name: String::new(),
             },
             error_message: Some(msg.to_string()),
+            is_admin: false,
         }
     }
 
     /// Return `UserObject`.
     pub fn get_object(self) -> UserObject {
         self.user
+    }
+
+    pub fn with_admin(mut self, is_admin: bool) -> Self {
+        self.is_admin = is_admin;
+        self
     }
 }
 

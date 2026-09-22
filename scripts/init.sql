@@ -71,6 +71,17 @@ CREATE TABLE submits -- submit
     result JudgeResult not null
 );
 
+CREATE TABLE admin_judge_audit (
+    id bigserial primary key,
+    submission_id integer not null REFERENCES submits(id),
+    admin_user_id integer not null REFERENCES accounts(id),
+    previous_result text not null,
+    previous_error_message text not null,
+    new_result text not null,
+    new_error_message text not null,
+    changed_at timestamptz not null DEFAULT now()
+);
+
 -- 各問題のINSERT文
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, arch, test_target, is_wrong_code, error_line_number, score)
@@ -410,7 +421,7 @@ int main(void) {
     char str[20];
     int count = 0;
     scanf("%s", str);
-    for (int i = 0; str[i] != \'\0\'; i++) {
+    for (int i = 0; str[i] != ''\0''; i++) {
         count++;
     }
     printf("入力された文字数は %d です\n", count);

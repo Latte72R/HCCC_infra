@@ -1,4 +1,15 @@
 services:
+  frontend:
+    build: ../HCCC_frontend
+    ports:
+      - ${FRONTEND_PORT:-3000}:3000
+    environment:
+      HCCC_API_INTERNAL_URL: http://web_server:55301
+    depends_on:
+      web_server:
+        condition: service_healthy
+    restart: always
+
   web_server:
     build: web_server
     container_name: web_server
@@ -9,9 +20,15 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-kcs1959}:${POSTGRES_PASSWORD:-WeL0veKCS}@db:5432/${POSTGRES_DB:-hccc_judge}
       CONTEST_BEGIN: ${CONTEST_BEGIN:-2025-09-01T00:00:00+09:00}
       CONTEST_END: ${CONTEST_END:-2025-09-20T00:00:00+09:00}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:55301/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: always
     
   judge_server:

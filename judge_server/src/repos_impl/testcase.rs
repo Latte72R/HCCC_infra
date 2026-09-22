@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use tokio_postgres::Row;
 
 use crate::database::ConnectionPool;
@@ -12,14 +13,15 @@ pub struct TestcaseImpl<'a> {
 #[axum::async_trait]
 impl<'a> Testcases for TestcaseImpl<'a> {
     /// Get pending submits from database.
-    async fn get_all_testcases(&self, num_of_testcases: u32) -> Vec<Vec<Testcase>> {
+    async fn get_all_testcases(&self, problem_ids: Vec<i32>) -> HashMap<i32, Vec<Testcase>> {
         let conn = self.pool.get().await.unwrap();
-        let mut testcases = Vec::new();
-        for problem_id in 0..num_of_testcases {
-            testcases.push(
+        let mut testcases = HashMap::new();
+        for problem_id in problem_ids {
+            testcases.insert(
+                problem_id,
                 conn.query(
                     "SELECT * FROM testcases WHERE problem_id = $1",
-                    &[&(problem_id as i32)],
+                    &[&problem_id],
                 )
                 .await
                 .unwrap()

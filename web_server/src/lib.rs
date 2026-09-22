@@ -36,15 +36,23 @@ mod controllers {
     //! Routing the api.
 
     mod accounts;
+    mod admin;
     mod problems;
     mod root;
     mod submissions;
     mod users;
 
-    pub use problems::problem;
     pub use root::app;
     pub use submissions::submissions;
-    pub use users::user;
+}
+
+/// Administration is explicitly granted to account IDs configured at deployment.
+pub fn is_admin_user(user_id: i32) -> bool {
+    std::env::var("ADMIN_USER_IDS")
+        .unwrap_or_default()
+        .split(',')
+        .filter_map(|id| id.trim().parse::<i32>().ok())
+        .any(|id| id == user_id)
 }
 
 mod database;
@@ -102,7 +110,7 @@ mod services {
     mod submissions;
     mod users;
 
-    pub use accounts::{create_account, create_session, SessionToken};
+    pub use accounts::{create_account, create_session};
     pub use problems::{get_all_problems, get_problem};
     pub use ranking::get_ranking;
     pub use submissions::{
