@@ -35,6 +35,8 @@ RISCV_TOOLCHAIN_IMAGE=hccc-riscv-toolchain:local docker compose -f docker-compos
 管理者アカウントは最初から `admin` / `P@ssw0rd`（ID 1）で作成されます。
 管理画面は `/admin` です。判定修正は変更前後の結果と管理者 ID を
 `admin_judge_audit` に記録します。既存 DB でも web 起動時に自動作成されます。
+大会期間（開始・終了）も管理画面から変更できます。`CONTEST_BEGIN` /
+`CONTEST_END` は初回シード用で、DB に値がある場合はそちらが優先されます。
 
 ## データベース
 

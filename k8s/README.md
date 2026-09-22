@@ -39,6 +39,9 @@ kubectl -n hccc create configmap hccc-config \
   --from-literal=runner-image-riscv='ghcr.io/humanccompilercontest/hccc_infra:test_runner_riscv-develop'
 ```
 
+`contest-begin` / `contest-end` は初回シード用です。運用中の変更は管理画面
+(`/admin` の大会期間) から行います。
+
 ## 2. Migrate existing data (only if you have a Compose postgres:14 volume)
 
 Postgres major versions cannot reuse the old data directory. From `HCCC_infra`
