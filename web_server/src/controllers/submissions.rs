@@ -100,7 +100,7 @@ pub async fn submit(
 pub struct SubmitReq {
     asm: String,
     arch: String,
-    #[serde(rename = "isCE")]
+    #[serde(rename = "isCE", default)]
     is_ce: bool,
     error_line_number: Option<i32>,
 }

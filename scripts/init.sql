@@ -220,28 +220,6 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    5,
-    'Undefined variable',
-    '未定義の変数を含むプログラムをコードの通りにコンパイルしてください．',
-    'int main() {
-    return num;
-}',
-    '無し',
-    'exitcodeで出力',
-    'ExitCode',
-    true,
-    2,
-    100
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    5,
-    '',
-    ''
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
-VALUES (
     6,
     'Call function',
     '関数を含むプログラムをコードの通りにコンパイルしてください.',
@@ -395,33 +373,6 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    13,
-    'Echo',
-    '入力された文字をおうむ返しするコードをコンパイルしてください.',
-    '#include <stdio.h>
-
-int main() {
-    char str[30];
-    scanf("%s", str);
-    printf("%s", str);
-    return 0;
-}',
-    '1 <= len(s) <= 29',
-    '標準出力、入力文字列と同じ',
-    'NoTestCase',
-    true,
-    5,
-    200
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    13,
-    null,
-    null
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
-VALUES (
     14,
     'Length of string',
     '入力した文字数を数えるプログラムをコンパイルしてください',
@@ -510,38 +461,6 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     15,
     '20',
     '12Fizz4BuzzFizz78FizzBuzz11Fizz1314FizzBuzz1617Fizz19Buzz'
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    16,
-    'Recursive GCD',
-    '再帰を用いて2つの整数の最大公約数を求めるプログラムを、コードの通りにコンパイルしてください．',
-    '#include <stdio.h>
-
-int gcd(int a, int b) {
-    if (b == 0)
-        return a;
-    else
-        return gcd(b, a % b);
-}
-
-int main() {
-    int a = 48, b = 18;
-    return gcd(a, b);
-}',
-    '無し',
-    'exitcodeで出力',
-    'ExitCode',
-    true,
-    null,
-    300
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    16,
-    '',
-    '6'
 );
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
@@ -668,43 +587,6 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     20,
     '',
     '1000'
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    21,
-    'Switch',
-    'switch文をコンパイルしてみよう!',
-    '#include <stdio.h>
-
-int main() {
-  int num = 2;
-  switch (num) {
-  case 1:
-    int value = 10;
-    printf("Case 1: %d\n", value);
-    break;
-  case 2:
-    int value = 20;
-    printf("Case 2: %d\n", value);
-    break;
-  default:
-    break;
-  }
-  return 0;
-}',
-    '無し',
-    '標準出力',
-    'NoTestCase',
-    true,
-    11,
-    300
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    21,
-    null,
-    null
 );
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
