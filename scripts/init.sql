@@ -493,31 +493,6 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
 VALUES (
-    18,
-    'Increment, Decrement',
-    'ポインタとインクリメントを含むプログラムをコードの通りにコンパイルしてください．',
-    'int main(void) {
-  int a = 3, b = 5, c = 7;
-  int *ptr = &b;
-  int result = a++ + *ptr * (--c) + ++a;
-  return result;
-}',
-    '無し',
-    'exitcodeで出力',
-    'ExitCode',
-    false,
-    null,
-    300
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    18,
-    '',
-    '20'
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
-VALUES (
     19,
     'Fibonacci',
     'フィボナッチ数列を計算するプログラムをコンパイルしてください。',
@@ -558,35 +533,6 @@ INSERT INTO testcases (problem_id, input, expect) VALUES(
     19,
     '20',
     '10946'
-);
-
-INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)
-VALUES (
-    20,
-    'Dereference operator',
-    '3つの変数を使ったプログラムをコンパイルしてみよう！',
-    '#include <stdio.h>
-
-int main() {
-    int *d, e, **f;
-    e = 10;
-    d = &e;
-    f = &d;
-    printf("%d", e**d***f);
-    return 0;
-}',
-    '無し',
-    '標準出力',
-    'StdOut',
-    false,
-    null,
-    300
-);
-
-INSERT INTO testcases (problem_id, input, expect) VALUES(
-    20,
-    '',
-    '1000'
 );
 
 INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_target, is_wrong_code, error_line_number, score)

@@ -33,9 +33,9 @@ kubectl -n hccc create secret generic hccc-postgres \
   --from-literal=database-url='postgres://kcs1959:<strong-password>@db:5432/hccc_judge'
 kubectl -n hccc create configmap hccc-config \
   --from-literal=admin-user-ids='1' \
-  --from-literal=contest-begin='2025-09-01T00:00:00+09:00' \
-  --from-literal=contest-end='2025-09-20T00:00:00+09:00' \
-  --from-literal=contest-event-name='KCS 夏合宿' \
+  --from-literal=contest-begin='2026-09-23T00:00:00+09:00' \
+  --from-literal=contest-end='2026-09-26T15:00:00+09:00' \
+  --from-literal=contest-event-name='KCS Summer Camp '"'"'26' \
   --from-literal=runner-image-x8664='ghcr.io/humanccompilercontest/hccc_infra:test_runner_x8664-develop' \
   --from-literal=runner-image-riscv='ghcr.io/humanccompilercontest/hccc_infra:test_runner_riscv-develop'
 ```
