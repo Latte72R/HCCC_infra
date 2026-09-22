@@ -77,6 +77,21 @@ impl RepositoryProvider {
     ) {
         contest_period_from_pool(&self.0).await
     }
+
+    /// Event name shown on the top page. Admin-editable, seeded from
+    /// CONTEST_EVENT_NAME.
+    pub async fn event_name(&self) -> String {
+        let conn = self.0.get().await.unwrap();
+        conn.query_opt(
+            "SELECT value FROM contest_config WHERE key = 'event_name'",
+            &[],
+        )
+        .await
+        .ok()
+        .flatten()
+        .map(|row| row.get::<_, String>("value"))
+        .unwrap_or_else(default_event_name)
+    }
 }
 
 /// Read the contest period from contest_config with env fallback.
@@ -134,10 +149,17 @@ async fn ensure_contest_config(pool: &ConnectionPool) {
     .await
     .unwrap();
     let (begin, end) = crate::constants::contest_duration();
+    let event_name = default_event_name();
     conn.execute(
-        "INSERT INTO contest_config (key, value) VALUES ('contest_begin', $1), ('contest_end', $2) ON CONFLICT (key) DO NOTHING",
-        &[&begin.to_rfc3339(), &end.to_rfc3339()],
+        "INSERT INTO contest_config (key, value) VALUES ('contest_begin', $1), ('contest_end', $2), ('event_name', $3) ON CONFLICT (key) DO NOTHING",
+        &[&begin.to_rfc3339(), &end.to_rfc3339(), &event_name],
     )
     .await
     .unwrap();
+}
+
+/// Initial event name shown on the top page until an admin changes it.
+fn default_event_name() -> String {
+    dotenv::dotenv().ok();
+    std::env::var("CONTEST_EVENT_NAME").unwrap_or_else(|_| "KCS 夏合宿".to_string())
 }

@@ -47,6 +47,7 @@ pub struct CorrectionResponse {
 pub struct ContestPeriod {
     begin: String,
     end: String,
+    event_name: String,
 }
 
 #[derive(Serialize)]
@@ -140,6 +141,7 @@ fn validate_problem(input: &ProblemInput) -> bool {
 pub struct ContestPeriodUpdate {
     begin: String,
     end: String,
+    event_name: String,
 }
 
 fn parse_rfc3339(value: &str) -> Option<chrono::DateTime<chrono::FixedOffset>> {
@@ -155,14 +157,16 @@ pub async fn get_contest_period(
         return Err(StatusCode::FORBIDDEN);
     }
     let (begin, end) = repository_provider.contest_period().await;
+    let event_name = repository_provider.event_name().await;
     Ok(Json(ContestPeriod {
         begin: begin.to_rfc3339(),
         end: end.to_rfc3339(),
+        event_name,
     }))
 }
 
 /// Update the contest period (admin only). Both values must be valid RFC3339
-/// timestamps with begin strictly before end.
+/// timestamps with begin strictly before end. Event name is shown on the top page.
 pub async fn update_contest_period(
     context: UserContext,
     Extension(pool): Extension<PgPool>,
@@ -178,12 +182,16 @@ pub async fn update_contest_period(
     if begin >= end {
         return Err(StatusCode::BAD_REQUEST);
     }
+    if update.event_name.is_empty() || update.event_name.len() > 200 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
     sqlx::query(
-        "INSERT INTO contest_config (key, value) VALUES ('contest_begin', $1), ('contest_end', $2) \
+        "INSERT INTO contest_config (key, value) VALUES ('contest_begin', $1), ('contest_end', $2), ('event_name', $3) \
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
     )
     .bind(begin.to_rfc3339())
     .bind(end.to_rfc3339())
+    .bind(&update.event_name)
     .execute(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

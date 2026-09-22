@@ -104,7 +104,8 @@ async fn contest_period(
 ) -> Json<serde_json::Value> {
     tracing::debug!("/api/contest/period");
     let (begin, end) = repository_provider.contest_period().await;
+    let event_name = repository_provider.event_name().await;
     Json(
-        serde_json::json!({ "status": "ok", "begin": begin.to_rfc3339(), "end": end.to_rfc3339() }),
+        serde_json::json!({ "status": "ok", "begin": begin.to_rfc3339(), "end": end.to_rfc3339(), "eventName": event_name }),
     )
 }

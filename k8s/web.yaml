@@ -56,6 +56,11 @@ spec:
                 configMapKeyRef:
                   name: hccc-config
                   key: contest-end
+            - name: CONTEST_EVENT_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: hccc-config
+                  key: contest-event-name
           livenessProbe:
             httpGet:
               path: /healthz
