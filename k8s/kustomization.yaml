@@ -9,6 +9,7 @@ resources:
   - web.yaml
   - judge.yaml
   - frontend.yaml
+  - ingress.yaml
   - networkpolicy.yaml
 
 # Seeds a fresh database from scripts/init.sql on first boot.
