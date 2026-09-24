@@ -133,7 +133,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     1,
     'Addition of constants',
-    '定数の足し算をするプログラムをコードの通りにコンパイルしてください．練習も兼ねて答えを直書きしないで実際に足す命令を使いましょう．',
+    '定数の足し算をするプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．練習も兼ねて答えを直書きせず，実際に足す命令を使いましょう．',
     'int main() {
     return 5 + 2;
 }',
@@ -155,7 +155,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     2,
     'Subtraction of constants',
-    '定数の引き算をするプログラムをコードの通りにコンパイルしてください．',
+    '定数の引き算をするプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int main() {
     return 255 - 55;
 }',
@@ -177,7 +177,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     3,
     'Four arithmetic operations',
-    '定数の四則演算をするプログラムをコードの通りにコンパイルしてください．掛け算や割り算はやや面倒ですが，これもいい練習です．',
+    '定数の四則演算をするプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．掛け算や割り算はやや面倒ですが，これもいい練習です．',
     'int main() {
     return 22 * 4 - 48 / 3;
 }',
@@ -199,7 +199,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     4,
     'Local variable',
-    'ローカル変数を含むプログラムをコードの通りにコンパイルしてください．',
+    'ローカル変数を含むプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int main() {
     int a = 3;
     return a;
@@ -222,7 +222,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     6,
     'Call function',
-    '関数を含むプログラムをコードの通りにコンパイルしてください.',
+    '関数を含むプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int five() {
     return 5;
 }
@@ -247,7 +247,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     7,
     'Global variable',
-    'グローバル変数を含むプログラムをコードの通りにコンパイルしてください',
+    'グローバル変数を含むプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int a = 9;
 void add_two() {
     a += 2;
@@ -275,7 +275,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     8,
     'Call function with args',
-    '引数ありの関数呼び出しを含むプログラムをコードの通りにをコンパイルしてください.',
+    '引数ありの関数呼び出しを含むプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int add(int x, int y) {
     return x + y;
 }
@@ -301,9 +301,9 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     9,
     'String',
-    '文字列を含むプログラムをコードの通りにコンパイルしてください。',
+    '文字列を含むプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int main() {
-    char array[6] = "Hello";
+    char *array = "Hello";
     return array[2];
 }',
     '無し',
@@ -349,7 +349,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     11,
     'Sum',
-    '1~nの合計を計算するプログラムをコードの通りにコンパイルしてください．',
+    '1~nの合計を計算するプログラムをコードの通りにコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int main() {
     int n = 10, sum = 0;
     for (int i=1; i<=n; i++) {
@@ -467,7 +467,7 @@ INSERT INTO problems (id, title, statement, code, input_desc, output_desc, test_
 VALUES (
     17,
     'Multiplication',
-    '配列の要素を全て掛け合わせた結果を17で割った余りを出力するプログラムをコンパイルしてください．',
+    '配列の要素を全て掛け合わせた結果を17で割った余りを出力するプログラムをコンパイルしてください．この問題では恣意的な最適化は禁止です．',
     'int main() {
   int arr[5] = {5, 2, 4, 3, 7};
   int multi = 1;
