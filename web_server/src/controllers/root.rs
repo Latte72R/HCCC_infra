@@ -31,6 +31,7 @@ pub async fn app() -> Router {
             Method::GET,
             Method::POST,
             Method::PUT,
+            Method::DELETE,
             Method::HEAD,
             Method::OPTIONS,
         ])
@@ -60,6 +61,14 @@ pub async fn app() -> Router {
         .route(
             "/api/admin/submissions/:id/judgement",
             routing::put(admin::correct_judgement),
+        )
+        .route(
+            "/api/admin/submissions/:id/rejudge",
+            routing::post(admin::rejudge_submission),
+        )
+        .route(
+            "/api/admin/submissions/:id",
+            routing::delete(admin::delete_submission),
         )
         .route("/api/login", routing::post(accounts::login))
         .route("/api/logout", routing::post(accounts::logout))

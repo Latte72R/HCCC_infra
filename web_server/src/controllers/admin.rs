@@ -43,6 +43,14 @@ pub struct CorrectionResponse {
     status: &'static str,
 }
 
+async fn ensure_admin_judge_audit(pool: &PgPool) -> Result<(), StatusCode> {
+    sqlx::query("CREATE TABLE IF NOT EXISTS admin_judge_audit (id bigserial PRIMARY KEY, submission_id integer NOT NULL REFERENCES submits(id), admin_user_id integer NOT NULL REFERENCES accounts(id), previous_result text NOT NULL, previous_error_message text NOT NULL, new_result text NOT NULL, new_error_message text NOT NULL, changed_at timestamptz NOT NULL DEFAULT now())")
+        .execute(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(())
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContestPeriod {
@@ -217,8 +225,7 @@ pub async fn correct_judgement(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    sqlx::query("CREATE TABLE IF NOT EXISTS admin_judge_audit (id bigserial PRIMARY KEY, submission_id integer NOT NULL REFERENCES submits(id), admin_user_id integer NOT NULL REFERENCES accounts(id), previous_result text NOT NULL, previous_error_message text NOT NULL, new_result text NOT NULL, new_error_message text NOT NULL, changed_at timestamptz NOT NULL DEFAULT now())")
-        .execute(&pool).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    ensure_admin_judge_audit(&pool).await?;
     let mut transaction = pool
         .begin()
         .await
@@ -248,6 +255,108 @@ pub async fn correct_judgement(
         .commit()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(CorrectionResponse { status: "ok" }))
+}
+
+/// Put a completed submission back into the judge queue (admin only).
+/// Pending or currently claimed submissions are rejected to avoid racing an
+/// already-running judge.
+pub async fn rejudge_submission(
+    Path(id): Path<i32>,
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<CorrectionResponse>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    ensure_admin_judge_audit(&pool).await?;
+    let mut transaction = pool
+        .begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let previous = sqlx::query(
+        "SELECT result::text AS result, error_message, claimed_at IS NOT NULL AS claimed \
+         FROM submits WHERE id = $1 FOR UPDATE",
+    )
+    .bind(id)
+    .fetch_optional(&mut transaction)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::NOT_FOUND)?;
+
+    let previous_result: String = previous.get("result");
+    let previous_error: String = previous.get("error_message");
+    let claimed: bool = previous.get("claimed");
+    if previous_result == "Pending" || claimed {
+        return Err(StatusCode::CONFLICT);
+    }
+
+    sqlx::query(
+        "UPDATE submits SET result = 'Pending', error_message = '', \
+         claimed_at = NULL, claimed_by = NULL WHERE id = $1",
+    )
+    .bind(id)
+    .execute(&mut transaction)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    sqlx::query("INSERT INTO admin_judge_audit (submission_id, admin_user_id, previous_result, previous_error_message, new_result, new_error_message) VALUES ($1, $2, $3, $4, 'Pending', '')")
+        .bind(id)
+        .bind(context.user_id())
+        .bind(previous_result)
+        .bind(previous_error)
+        .execute(&mut transaction)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(CorrectionResponse { status: "ok" }))
+}
+
+/// Permanently delete one submission (admin only).
+/// Its judgement audit rows are removed first because they reference the
+/// submission. This operation is intentionally irreversible.
+pub async fn delete_submission(
+    Path(id): Path<i32>,
+    context: UserContext,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<CorrectionResponse>, StatusCode> {
+    if !is_admin_user(context.user_id()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    ensure_admin_judge_audit(&pool).await?;
+    let mut transaction = pool
+        .begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let exists = sqlx::query("SELECT id FROM submits WHERE id = $1 FOR UPDATE")
+        .bind(id)
+        .fetch_optional(&mut transaction)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if exists.is_none() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    sqlx::query("DELETE FROM admin_judge_audit WHERE submission_id = $1")
+        .bind(id)
+        .execute(&mut transaction)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    sqlx::query("DELETE FROM submits WHERE id = $1")
+        .bind(id)
+        .execute(&mut transaction)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     Ok(Json(CorrectionResponse { status: "ok" }))
 }
 
