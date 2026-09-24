@@ -8,20 +8,15 @@ the same submit twice.
 
 ## 0. Images
 
-Build and push the three images (or point the manifests at your registry):
+The GitHub Actions workflows publish these application images from `main`:
 
-```bash
-docker build -t ghcr.io/<you>/hccc-web:latest ./web_server
-docker build -f judge_server/Dockerfile -t ghcr.io/<you>/hccc-judge:latest .
-docker build -t ghcr.io/<you>/hccc-frontend:latest ../HCCC_frontend
-# test_runner images (x86-64 + RISC-V)
-docker compose -f docker-compose.yaml -f docker-compose.local.yaml \
-  --profile test_runner build test_runner_x8664 test_runner_riscv
-docker push ghcr.io/<you>/hccc-web ghcr.io/<you>/hccc-judge ghcr.io/<you>/hccc-frontend
+```text
+ghcr.io/latte72r/hccc-web:latest
+ghcr.io/latte72r/hccc-judge:latest
+ghcr.io/latte72r/hccc-frontend:latest
 ```
 
-Update the `image:` fields in `web.yaml`, `judge.yaml`, `frontend.yaml`
-accordingly.
+The test runner images remain configurable through `hccc-config`.
 
 ## 1. Namespace, Secrets, Config
 
@@ -56,18 +51,25 @@ psql "$DATABASE_URL" -f backups/hccc-pg14-backup-<stamp>.sql
 psql "$DATABASE_URL" -f scripts/migrations/002_judge_claim.sql
 ```
 
-Fresh installs need nothing: `init.sql` runs once on first StatefulSet boot.
+Fresh installs need nothing: `scripts/init.sql` is mounted as the only
+database initialization script and runs once on the first StatefulSet boot.
 
 ## 3. Deploy
 
+Run Kustomize from the repository root so the database init ConfigMap can use
+`scripts/init.sql` without escaping the Kustomize root:
+
 ```bash
-kubectl apply -k k8s/
+kubectl apply -k .
+kubectl -n hccc rollout status statefulset/db
+kubectl -n hccc rollout status deploy/web-server
+kubectl -n hccc rollout status deploy/frontend
 kubectl -n hccc rollout status deploy/judge-server
 kubectl -n hccc get jobs -w   # Jobs appear as submissions arrive
 ```
 
-Expose `frontend:3000` with your Ingress (e.g. NGINX) pointing at the
-`frontend` Service.
+The included Ingress exposes `frontend:3000` through Traefik at
+`hccc.latte72.net`. The backend remains cluster-internal.
 
 ## 4. Operate
 

@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: hccc
+
+resources:
+  - k8s
+
+# Fresh database initialization only. Existing databases are migrated
+# explicitly with scripts/migrations/.
+configMapGenerator:
+  - name: hccc-db-init
+    files:
+      - init.sql=scripts/init.sql
