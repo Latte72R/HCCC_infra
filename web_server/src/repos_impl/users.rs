@@ -30,74 +30,63 @@ impl<'a> Users for UserImpl<'a> {
         row.into_iter().map(std::convert::Into::into).collect()
     }
 
-    /// Assemble a ranking from database record.
-    /// Getting accepted and wrong answers, Then calculating score.
-    /// The score calculate according to the pseudo code as follows.
-    /// ```ignore
-    /// let score = if problem.is_ac() {
-    ///     problem.score - number_of_wrong_submission * 1;
-    /// } else {
-    ///     0
-    /// };
-    /// ```
+    /// Assemble a ranking from the current submission results.
+    ///
+    /// Scoring is derived on every request instead of being stored separately,
+    /// so admin corrections, rejudges and deletions are reflected
+    /// automatically. For each solved problem, only judged wrong attempts
+    /// within the contest and strictly before the first current AC are
+    /// penalized. Pending/SystemError are operational states and WC is kept
+    /// non-penalizing for compatibility with the existing contest rules.
     async fn create_ranking(&self) -> Vec<Rank> {
         let (start, end) = crate::database::contest_period_from_pool(self.pool).await;
         let conn = self.pool.get().await.unwrap();
-        let ac = conn
+        let rows = conn
             .query(
-                "SELECT a_outer.name AS name, coalesce(SUM(sub.score), 0) AS score, coalesce(MAX(sub.min_time), NOW()) AS max_time
-                FROM
-                (
-                    SELECT a.name AS name, s.problem_id AS problem_id, p.score AS score, MIN(s.time) AS min_time FROM submits AS s 
-                    JOIN accounts AS a ON s.user_id = a.id
-                    JOIN problems AS p ON s.problem_id = p.id
-                    WHERE s.result = 'AC'
-                    AND $1 <= s.time 
-                    AND s.time <= $2
-                    GROUP BY a.name, s.problem_id, p.score
-                ) AS sub
-                RIGHT JOIN accounts AS a_outer ON sub.name = a_outer.name
-                GROUP BY a_outer.name
-                ORDER BY a_outer.name
-                ;",
-                &[&start, &end]
-            )
-            .await
-            .unwrap();
-
-        let not_ac = conn
-            .query(
-                "SELECT a.name AS name, COUNT((s.result != 'AC' AND s.result != 'WC') or NULL) AS wrong_count FROM submits AS s
-                JOIN (
-                SELECT user_id, problem_id FROM submits
+                "WITH first_ac AS (
+                    SELECT user_id, problem_id, MIN(time) AS first_ac_time
+                    FROM submits
                     WHERE result = 'AC'
-                    AND $1 <= time 
-                    AND time <= $2
+                      AND $1 <= time
+                      AND time <= $2
                     GROUP BY user_id, problem_id
-                ) AS sub ON s.user_id = sub.user_id AND s.problem_id = sub.problem_id
-                RIGHT JOIN accounts AS a ON s.user_id = a.id
-                GROUP BY a.name
-                ORDER BY a.name
-                ;",
-                &[&start, &end]
+                ),
+                problem_scores AS (
+                    SELECT
+                        fa.user_id,
+                        fa.problem_id,
+                        fa.first_ac_time,
+                        GREATEST(
+                            p.score::bigint - COUNT(*) FILTER (
+                                WHERE s.time >= $1
+                                  AND s.time < fa.first_ac_time
+                                  AND s.result IN ('WA', 'AE', 'LE', 'RE', 'TLE')
+                            ),
+                            0
+                        ) AS earned_score
+                    FROM first_ac AS fa
+                    JOIN problems AS p ON p.id = fa.problem_id
+                    LEFT JOIN submits AS s
+                      ON s.user_id = fa.user_id
+                     AND s.problem_id = fa.problem_id
+                    GROUP BY fa.user_id, fa.problem_id, fa.first_ac_time, p.score
+                )
+                SELECT
+                    a.name AS name,
+                    COALESCE(SUM(ps.earned_score), 0)::bigint AS score,
+                    COALESCE(MAX(ps.first_ac_time), NOW()) AS max_time
+                FROM accounts AS a
+                LEFT JOIN problem_scores AS ps ON ps.user_id = a.id
+                GROUP BY a.id, a.name
+                ORDER BY a.name;",
+                &[&start, &end],
             )
             .await
             .unwrap();
 
-        // return null when wc is null
-        let mut ranking = ac
-            .iter()
-            .zip(not_ac.iter())
-            .map(|(x, y)| {
-                Rank::new(
-                    x.get("name"),
-                    std::cmp::max(
-                        0,
-                        x.get::<&str, i64>("score") - y.get::<&str, i64>("wrong_count"),
-                    ),
-                    x.get("max_time"),
-                )
-            })
+        let mut ranking = rows
+            .into_iter()
+            .map(|row| Rank::new(row.get("name"), row.get("score"), row.get("max_time")))
             .collect::<Vec<Rank>>();
 
         ranking.sort_by(|x, y| match (-x.score).cmp(&-y.score) {
@@ -111,6 +100,7 @@ impl<'a> Users for UserImpl<'a> {
             .map(|(rank, r)| r.set_rank(rank + 1))
             .collect()
     }
+
 }
 
 impl From<Row> for User {
