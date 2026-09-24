@@ -52,7 +52,7 @@ spec:
               value: hccc_judge
           volumeMounts:
             - name: data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
             - name: init
               mountPath: /docker-entrypoint-initdb.d
           resources:
@@ -80,6 +80,7 @@ spec:
     - metadata:
         name: data
       spec:
+        storageClassName: longhorn
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
