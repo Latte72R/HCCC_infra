@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Extension, Path},
+    extract::{Extension, Path, Query},
     http::StatusCode,
     Json,
 };
@@ -18,6 +18,11 @@ struct RecentSubmission {
     result: String,
     error_message: String,
     submitted_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct OverviewQuery {
+    offset: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -362,6 +367,7 @@ pub async fn delete_submission(
 
 /// A small read-only operations view. No source code or password data is returned.
 pub async fn overview(
+    Query(query): Query<OverviewQuery>,
     context: UserContext,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<Overview>, StatusCode> {
@@ -380,12 +386,15 @@ pub async fn overview(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    let offset = query.offset.unwrap_or(0).max(0);
     let rows = sqlx::query(
         "SELECT s.id, a.name AS user_name, p.id AS problem_id, p.title AS problem_title, \
          s.result::text AS result, s.error_message, s.time AS submitted_at \
          FROM submits s JOIN accounts a ON a.id = s.user_id \
-         JOIN problems p ON p.id = s.problem_id ORDER BY s.time DESC LIMIT 20",
+         JOIN problems p ON p.id = s.problem_id \
+         ORDER BY s.time DESC, s.id DESC LIMIT 20 OFFSET $1",
     )
+    .bind(offset)
     .fetch_all(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
