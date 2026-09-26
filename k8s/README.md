@@ -14,9 +14,13 @@ The GitHub Actions workflows publish these application images from `main`:
 ghcr.io/latte72r/hccc-web:latest
 ghcr.io/latte72r/hccc-judge:latest
 ghcr.io/latte72r/hccc-frontend:latest
+ghcr.io/latte72r/hccc-test-runner-x8664:latest
+ghcr.io/latte72r/hccc-test-runner-riscv:latest
 ```
 
-The test runner images remain configurable through `hccc-config`.
+The RISC-V runner uses the Linux cross toolchain plus `qemu-riscv64`.
+Runner images remain configurable through `hccc-config`; for production,
+prefer the immutable `sha-<commit>` tags published by the workflow.
 
 ## 1. Namespace, Secrets, Config
 
@@ -31,8 +35,8 @@ kubectl -n hccc create configmap hccc-config \
   --from-literal=contest-begin='2026-09-23T00:00:00+09:00' \
   --from-literal=contest-end='2026-09-26T15:00:00+09:00' \
   --from-literal=contest-event-name='KCS Summer Camp '"'"'26' \
-  --from-literal=runner-image-x8664='ghcr.io/humanccompilercontest/hccc_infra:test_runner_x8664-develop' \
-  --from-literal=runner-image-riscv='ghcr.io/humanccompilercontest/hccc_infra:test_runner_riscv-develop'
+  --from-literal=runner-image-x8664='ghcr.io/latte72r/hccc-test-runner-x8664:latest' \
+  --from-literal=runner-image-riscv='ghcr.io/latte72r/hccc-test-runner-riscv:latest'
 ```
 
 `contest-begin` / `contest-end` は初回シード用です。運用中の変更は管理画面
