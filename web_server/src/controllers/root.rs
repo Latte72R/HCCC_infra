@@ -1,9 +1,10 @@
 use axum::{
-    extract::Extension,
+    extract::{Extension, Query},
     http::header::CONTENT_TYPE,
     http::{HeaderValue, Method, StatusCode},
     routing, Json, Router,
 };
+use serde::Deserialize;
 use sqlx::PgPool;
 use tower_http::cors::CorsLayer;
 
@@ -12,6 +13,12 @@ use crate::database::{self, RepositoryProvider};
 use crate::entities::Ranking;
 use crate::request;
 use crate::services;
+
+#[derive(Debug, Default, Deserialize)]
+struct RankingQuery {
+    #[serde(default)]
+    include_after_contest: bool,
+}
 
 /// Root of router.
 /// It is also setting the allowed origins for CORS.
@@ -100,10 +107,13 @@ async fn ready(Extension(pool): Extension<PgPool>) -> StatusCode {
 }
 
 /// Return `/api/ranking` api.
-async fn ranking(Extension(repository_provider): Extension<RepositoryProvider>) -> Json<Ranking> {
+async fn ranking(
+    Query(query): Query<RankingQuery>,
+    Extension(repository_provider): Extension<RepositoryProvider>,
+) -> Json<Ranking> {
     tracing::debug!("/api/ranking");
     let user_repo = repository_provider.user();
-    Json(services::get_ranking(&user_repo).await)
+    Json(services::get_ranking(&user_repo, query.include_after_contest).await)
 }
 
 /// Public contest period so the frontend clock/banner follows the
