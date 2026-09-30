@@ -34,11 +34,13 @@ impl<'a> Users for UserImpl<'a> {
     ///
     /// Scoring is derived on every request instead of being stored separately,
     /// so admin corrections, rejudges and deletions are reflected
-    /// automatically. For each solved problem, only judged wrong attempts
-    /// within the contest and strictly before the first current AC are
+    /// automatically. By default, accepted submissions are limited to the
+    /// contest period. When `include_after_contest` is true, submissions from
+    /// the contest start onward are included. For each solved problem, only
+    /// judged wrong attempts strictly before the first current AC are
     /// penalized. Pending/SystemError are operational states and WC is kept
     /// non-penalizing for compatibility with the existing contest rules.
-    async fn create_ranking(&self) -> Vec<Rank> {
+    async fn create_ranking(&self, include_after_contest: bool) -> Vec<Rank> {
         let (start, end) = crate::database::contest_period_from_pool(self.pool).await;
         let conn = self.pool.get().await.unwrap();
         let rows = conn
@@ -48,7 +50,7 @@ impl<'a> Users for UserImpl<'a> {
                     FROM submits
                     WHERE result = 'AC'
                       AND $1 <= time
-                      AND time <= $2
+                      AND ($3 OR time <= $2)
                     GROUP BY user_id, problem_id
                 ),
                 problem_scores AS (
@@ -79,7 +81,7 @@ impl<'a> Users for UserImpl<'a> {
                 LEFT JOIN problem_scores AS ps ON ps.user_id = a.id
                 GROUP BY a.id, a.name
                 ORDER BY a.name;",
-                &[&start, &end],
+                &[&start, &end, &include_after_contest],
             )
             .await
             .unwrap();
@@ -100,7 +102,6 @@ impl<'a> Users for UserImpl<'a> {
             .map(|(rank, r)| r.set_rank(rank + 1))
             .collect()
     }
-
 }
 
 impl From<Row> for User {
