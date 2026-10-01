@@ -92,3 +92,27 @@ infrastructure for [HCCC](https://github.com/Alignof/Human_C_Compiler_Contest)
 - Pending 提出の取得は `SELECT ... FOR UPDATE SKIP LOCKED`＋リース
   （`claimed_at` / `claimed_by`、`JUDGE_CLAIM_LEASE_SECS` 既定 300 秒）で行うため、
   judge は複数レプリカで運用できます。詳細とマニフェストは `k8s/README.md` を参照してください。
+
+## Kubernetes manifest の更新
+
+```
+cd ~/HCCC_infra
+git switch main
+git pull --ff-only
+kubectl apply -k .
+```
+
+## GHCRの最新imageに更新
+
+更新して再起動
+```
+kubectl -n hccc rollout restart deployment/web-server
+kubectl -n hccc rollout restart deployment/judge-server
+kubectl -n hccc rollout restart deployment/frontend
+```
+完了の確認
+```
+kubectl -n hccc rollout status deployment/web-server --timeout=300s
+kubectl -n hccc rollout status deployment/judge-server --timeout=300s
+kubectl -n hccc rollout status deployment/frontend --timeout=300s
+```
